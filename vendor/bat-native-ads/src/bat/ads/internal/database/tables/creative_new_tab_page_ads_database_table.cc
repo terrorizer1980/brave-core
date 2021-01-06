@@ -164,7 +164,7 @@ void CreativeNewTabPageAds::GetForCreativeInstanceId(
           std::placeholders::_1, creative_instance_id, callback));
 }
 
-void CreativeNewTabPageAds::GetForSegments(
+void CreativeNewTabPageAds::GetNoExpiredForSegments(
     const SegmentList& segments,
     GetCreativeNewTabPageAdsCallback callback) {
   if (segments.empty()) {
@@ -248,7 +248,7 @@ void CreativeNewTabPageAds::GetForSegments(
   transaction->commands.push_back(std::move(command));
 
   AdsClientHelper::Get()->RunDBTransaction(std::move(transaction),
-      std::bind(&CreativeNewTabPageAds::OnGetForSegments, this,
+      std::bind(&CreativeNewTabPageAds::OnGetNoExpiredForSegments, this,
           std::placeholders::_1, segments, callback));
 }
 
@@ -434,7 +434,7 @@ void CreativeNewTabPageAds::OnGetForCreativeInstanceId(
   callback(Result::SUCCESS, creative_instance_id, creative_new_tab_page_ad);
 }
 
-void CreativeNewTabPageAds::OnGetForSegments(
+void CreativeNewTabPageAds::OnGetNoExpiredForSegments(
     DBCommandResponsePtr response,
     const SegmentList& segments,
     GetCreativeNewTabPageAdsCallback callback) {

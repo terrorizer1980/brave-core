@@ -168,7 +168,7 @@ void AdServing::MaybeServeAdForParentChildSegments(
   }
 
   database::table::CreativeAdNotifications database_table;
-  database_table.GetForSegments(segments, [=](
+  database_table.GetNoExpiredForSegments(segments, [=](
       const Result result,
       const SegmentList& segments,
       const CreativeAdNotificationList& ads) {
@@ -200,7 +200,7 @@ void AdServing::MaybeServeAdForParentSegments(
   }
 
   database::table::CreativeAdNotifications database_table;
-  database_table.GetForSegments(parent_segments, [=](
+  database_table.GetNoExpiredForSegments(parent_segments, [=](
       const Result result,
       const SegmentList& segments,
       const CreativeAdNotificationList& ads) {
@@ -230,7 +230,7 @@ void AdServing::MaybeServeAdForUntargeted(
   };
 
   database::table::CreativeAdNotifications database_table;
-  database_table.GetForSegments(segments, [=](
+  database_table.GetNoExpiredForSegments(segments, [=](
       const Result result,
       const SegmentList& segments,
       const CreativeAdNotificationList& ads) {

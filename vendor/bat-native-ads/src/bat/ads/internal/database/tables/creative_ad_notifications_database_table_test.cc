@@ -51,7 +51,7 @@ TEST_F(BatAdsCreativeAdNotificationsDatabaseTableIntegrationTest,
   };
 
   database::table::CreativeAdNotifications creative_ad_notifications;
-  creative_ad_notifications.GetForSegments(segments, [](
+  creative_ad_notifications.GetNoExpiredForSegments(segments, [](
       const Result result,
       const SegmentList& segments,
       const CreativeAdNotificationList& creative_ad_notifications) {

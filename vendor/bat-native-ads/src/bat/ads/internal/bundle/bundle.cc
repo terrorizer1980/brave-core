@@ -6,6 +6,7 @@
 #include "bat/ads/internal/bundle/bundle.h"
 
 #include <functional>
+#include <iostream>
 #include <limits>
 #include <string>
 #include <vector>
@@ -398,6 +399,8 @@ void Bundle::DeleteGeoTargets() {
 void Bundle::SaveCreativeAdNotifications(
     const CreativeAdNotificationList& creative_ad_notifications) {
   database::table::CreativeAdNotifications database_table;
+
+  std::cout << "FOOBAR.2: " << creative_ad_notifications.size() << std::endl;
 
   database_table.Save(creative_ad_notifications, [](
       const Result result) {

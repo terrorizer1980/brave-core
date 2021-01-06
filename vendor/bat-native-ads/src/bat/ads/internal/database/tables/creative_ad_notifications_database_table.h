@@ -27,6 +27,8 @@ namespace ads {
 using GetCreativeAdNotificationsCallback = std::function<void(const Result,
     const std::vector<std::string>&, const CreativeAdNotificationList&)>;
 
+using BindCallback = std::function<void()>;
+
 namespace database {
 namespace table {
 
@@ -43,7 +45,7 @@ class CreativeAdNotifications : public Table {
   void Delete(
       ResultCallback callback);
 
-  void GetForSegments(
+  void GetNoExpiredForSegments(
       const SegmentList& segments,
       GetCreativeAdNotificationsCallback callback);
 
@@ -60,6 +62,11 @@ class CreativeAdNotifications : public Table {
       const int to_version) override;
 
  private:
+  void RunTransaction(
+      const std::string& query,
+      GetCreativeAdNotificationsCallback get_ad_events_callback,
+      BindCallback bind_callback);
+
   void InsertOrUpdate(
       DBTransaction* transaction,
       const CreativeAdNotificationList& creative_ad_notifications);
@@ -72,7 +79,7 @@ class CreativeAdNotifications : public Table {
       DBCommand* command,
       const CreativeAdNotificationList& creative_ad_notifications);
 
-  void OnGetForSegments(
+  void OnGetNoExpiredForSegments(
       DBCommandResponsePtr response,
       const SegmentList& segments,
       GetCreativeAdNotificationsCallback callback);

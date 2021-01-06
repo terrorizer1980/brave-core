@@ -50,7 +50,7 @@ class CreativeNewTabPageAds : public Table {
       const std::string& creative_instance_id,
       GetCreativeNewTabPageAdCallback callback);
 
-  void GetForSegments(
+  void GetNoExpiredForSegments(
       const SegmentList& segments,
       GetCreativeNewTabPageAdsCallback callback);
 
@@ -84,7 +84,7 @@ class CreativeNewTabPageAds : public Table {
       const std::string& creative_instance_id,
       GetCreativeNewTabPageAdCallback callback);
 
-  void OnGetForSegments(
+  void OnGetNoExpiredForSegments(
       DBCommandResponsePtr response,
       const SegmentList& segments,
       GetCreativeNewTabPageAdsCallback callback);

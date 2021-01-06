@@ -50,7 +50,7 @@ TEST_F(BatAdsCreativeNewTabPageAdsDatabaseTableIntegrationTest,
   };
 
   database::table::CreativeNewTabPageAds creative_new_tab_page_ads;
-  creative_new_tab_page_ads.GetForSegments(segments, [](
+  creative_new_tab_page_ads.GetNoExpiredForSegments(segments, [](
       const Result result,
       const SegmentList& segments,
       const CreativeNewTabPageAdList& creative_new_tab_page_ads) {

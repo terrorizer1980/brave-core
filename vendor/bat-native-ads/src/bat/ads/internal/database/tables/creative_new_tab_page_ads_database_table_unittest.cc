@@ -101,7 +101,7 @@ TEST_F(BatAdsCreativeNewTabPageAdsDatabaseTableTest,
     "Technology & Computing-Software"
   };
 
-  database_table_->GetForSegments(segments,
+  database_table_->GetNoExpiredForSegments(segments,
       [&expected_creative_new_tab_page_ads](
           const Result result,
           const SegmentList& segments,
@@ -191,7 +191,7 @@ TEST_F(BatAdsCreativeNewTabPageAdsDatabaseTableTest,
     "Technology & Computing-Software"
   };
 
-  database_table_->GetForSegments(segments,
+  database_table_->GetNoExpiredForSegments(segments,
       [&expected_creative_new_tab_page_ads](
           const Result result,
           const SegmentList& segments,
@@ -241,7 +241,7 @@ TEST_F(BatAdsCreativeNewTabPageAdsDatabaseTableTest,
     "Technology & Computing-Software"
   };
 
-  database_table_->GetForSegments(segments,
+  database_table_->GetNoExpiredForSegments(segments,
       [&expected_creative_new_tab_page_ads](
           const Result result,
           const SegmentList& segments,
@@ -311,7 +311,7 @@ TEST_F(BatAdsCreativeNewTabPageAdsDatabaseTableTest,
     "Technology & Computing-Software"
   };
 
-  database_table_->GetForSegments(segments,
+  database_table_->GetNoExpiredForSegments(segments,
       [&expected_creative_new_tab_page_ads](
           const Result result,
           const SegmentList& segments,
@@ -445,7 +445,7 @@ TEST_F(BatAdsCreativeNewTabPageAdsDatabaseTableTest,
 
   const SegmentList segments = {};
 
-  database_table_->GetForSegments(segments,
+  database_table_->GetNoExpiredForSegments(segments,
       [&expected_creative_new_tab_page_ads](
           const Result result,
           const SegmentList& segments,
@@ -493,7 +493,7 @@ TEST_F(BatAdsCreativeNewTabPageAdsDatabaseTableTest,
     "Food & Drink"
   };
 
-  database_table_->GetForSegments(segments,
+  database_table_->GetNoExpiredForSegments(segments,
       [&expected_creative_new_tab_page_ads](
           const Result result,
           const SegmentList& segments,
@@ -584,7 +584,7 @@ TEST_F(BatAdsCreativeNewTabPageAdsDatabaseTableTest,
     "Food & Drink"
   };
 
-  database_table_->GetForSegments(segments,
+  database_table_->GetNoExpiredForSegments(segments,
       [&expected_creative_new_tab_page_ads](
           const Result result,
           const SegmentList& segments,
@@ -654,7 +654,7 @@ TEST_F(BatAdsCreativeNewTabPageAdsDatabaseTableTest,
     "Technology & Computing-Software"
   };
 
-  database_table_->GetForSegments(segments,
+  database_table_->GetNoExpiredForSegments(segments,
       [&expected_creative_new_tab_page_ads](
           const Result result,
           const SegmentList& segments,
@@ -723,7 +723,7 @@ TEST_F(BatAdsCreativeNewTabPageAdsDatabaseTableTest,
     "FoOd & DrInK"
   };
 
-  database_table_->GetForSegments(segments,
+  database_table_->GetNoExpiredForSegments(segments,
       [&expected_creative_new_tab_page_ads](
           const Result result,
           const SegmentList& segments,

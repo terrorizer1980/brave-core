@@ -82,7 +82,7 @@ void CreativeAdNotifications::Delete(
       std::bind(&OnResultCallback, std::placeholders::_1, callback));
 }
 
-void CreativeAdNotifications::GetForSegments(
+void CreativeAdNotifications::GetNoExpiredForSegments(
     const SegmentList& segments,
     GetCreativeAdNotificationsCallback callback) {
   if (segments.empty()) {
@@ -129,48 +129,59 @@ void CreativeAdNotifications::GetForSegments(
       BuildBindingParameterPlaceholder(segments.size()).c_str(),
       TimeAsTimestampString(base::Time::Now()).c_str());
 
-  DBCommandPtr command = DBCommand::New();
-  command->type = DBCommand::Type::READ;
-  command->command = query;
-
-  int index = 0;
-  for (const auto& segment : segments) {
-    BindString(command.get(), index, base::ToLowerASCII(segment));
-    index++;
-  }
-
-  command->record_bindings = {
-    DBCommand::RecordBindingType::STRING_TYPE,  // creative_instance_id
-    DBCommand::RecordBindingType::STRING_TYPE,  // creative_set_id
-    DBCommand::RecordBindingType::STRING_TYPE,  // campaign_id
-    DBCommand::RecordBindingType::INT64_TYPE,   // start_at_timestamp
-    DBCommand::RecordBindingType::INT64_TYPE,   // end_at_timestamp
-    DBCommand::RecordBindingType::INT_TYPE,     // daily_cap
-    DBCommand::RecordBindingType::STRING_TYPE,  // advertiser_id
-    DBCommand::RecordBindingType::INT_TYPE,     // priority
-    DBCommand::RecordBindingType::BOOL_TYPE,    // conversion
-    DBCommand::RecordBindingType::INT_TYPE,     // per_day
-    DBCommand::RecordBindingType::INT_TYPE,     // total_max
-    DBCommand::RecordBindingType::STRING_TYPE,  // segment
-    DBCommand::RecordBindingType::STRING_TYPE,  // geo_target
-    DBCommand::RecordBindingType::STRING_TYPE,  // target_url
-    DBCommand::RecordBindingType::STRING_TYPE,  // title
-    DBCommand::RecordBindingType::STRING_TYPE,  // body
-    DBCommand::RecordBindingType::DOUBLE_TYPE,  // ptr
-    DBCommand::RecordBindingType::STRING_TYPE,  // dayparts->dow
-    DBCommand::RecordBindingType::INT_TYPE,     // dayparts->start_minute
-    DBCommand::RecordBindingType::INT_TYPE      // dayparts->end_minute
-  };
-
-  DBTransactionPtr transaction = DBTransaction::New();
-  transaction->commands.push_back(std::move(command));
-
-  AdsClientHelper::Get()->RunDBTransaction(std::move(transaction),
-      std::bind(&CreativeAdNotifications::OnGetForSegments, this,
-          std::placeholders::_1, segments, callback));
+  RunTransaction(query, callback, [=](
+      DBCommandPtr command) {
+    int index = 0;
+    for (const auto& segment : segments) {
+      BindString(command.get(), index, base::ToLowerASCII(segment));
+      index++;
+    }
+  });
 }
 
 void CreativeAdNotifications::GetAll(
+    GetCreativeAdNotificationsCallback callback) {
+  const std::string query = base::StringPrintf(
+      "SELECT "
+          "can.creative_instance_id, "
+          "can.creative_set_id, "
+          "can.campaign_id, "
+          "cam.start_at_timestamp, "
+          "cam.end_at_timestamp, "
+          "cam.daily_cap, "
+          "cam.advertiser_id, "
+          "cam.priority, "
+          "ca.conversion, "
+          "ca.per_day, "
+          "ca.total_max, "
+          "s.segment, "
+          "gt.geo_target, "
+          "ca.target_url, "
+          "can.title, "
+          "can.body, "
+          "cam.ptr, "
+          "dp.dow, "
+          "dp.start_minute, "
+          "dp.end_minute "
+      "FROM %s AS can "
+          "INNER JOIN campaigns AS cam "
+              "ON cam.campaign_id = can.campaign_id "
+          "INNER JOIN segments AS s "
+              "ON s.creative_set_id = can.creative_set_id "
+          "INNER JOIN creative_ads AS ca "
+              "ON ca.creative_instance_id = can.creative_instance_id "
+          "INNER JOIN geo_targets AS gt "
+              "ON gt.campaign_id = can.campaign_id "
+          "INNER JOIN dayparts AS dp "
+              "ON dp.campaign_id = can.campaign_id ",
+      get_table_name().c_str());
+
+  RunTransaction(query, callback, [=](
+      DBCommandPtr command) {
+  });
+}
+
+void CreativeAdNotifications::GetNonExpired(
     GetCreativeAdNotificationsCallback callback) {
   const std::string query = base::StringPrintf(
       "SELECT "
@@ -209,39 +220,9 @@ void CreativeAdNotifications::GetAll(
       get_table_name().c_str(),
       TimeAsTimestampString(base::Time::Now()).c_str());
 
-  DBCommandPtr command = DBCommand::New();
-  command->type = DBCommand::Type::READ;
-  command->command = query;
-
-  command->record_bindings = {
-    DBCommand::RecordBindingType::STRING_TYPE,  // creative_instance_id
-    DBCommand::RecordBindingType::STRING_TYPE,  // creative_set_id
-    DBCommand::RecordBindingType::STRING_TYPE,  // campaign_id
-    DBCommand::RecordBindingType::INT64_TYPE,   // start_at_timestamp
-    DBCommand::RecordBindingType::INT64_TYPE,   // end_at_timestamp
-    DBCommand::RecordBindingType::INT_TYPE,     // daily_cap
-    DBCommand::RecordBindingType::STRING_TYPE,  // advertiser_id
-    DBCommand::RecordBindingType::INT_TYPE,     // priority
-    DBCommand::RecordBindingType::BOOL_TYPE,    // conversion
-    DBCommand::RecordBindingType::INT_TYPE,     // per_day
-    DBCommand::RecordBindingType::INT_TYPE,     // total_max
-    DBCommand::RecordBindingType::STRING_TYPE,  // segment
-    DBCommand::RecordBindingType::STRING_TYPE,  // geo_target
-    DBCommand::RecordBindingType::STRING_TYPE,  // target_url
-    DBCommand::RecordBindingType::STRING_TYPE,  // title
-    DBCommand::RecordBindingType::STRING_TYPE,  // body
-    DBCommand::RecordBindingType::DOUBLE_TYPE,  // ptr
-    DBCommand::RecordBindingType::STRING_TYPE,  // dayparts->dow
-    DBCommand::RecordBindingType::INT_TYPE,     // dayparts->start_minute
-    DBCommand::RecordBindingType::INT_TYPE      // dayparts->end_minute
-  };
-
-  DBTransactionPtr transaction = DBTransaction::New();
-  transaction->commands.push_back(std::move(command));
-
-  AdsClientHelper::Get()->RunDBTransaction(std::move(transaction),
-      std::bind(&CreativeAdNotifications::OnGetAll, this,
-          std::placeholders::_1, callback));
+  RunTransaction(query, callback, [=](
+      DBCommandPtr command) {
+  });
 }
 
 void CreativeAdNotifications::set_batch_size(
@@ -273,6 +254,47 @@ void CreativeAdNotifications::Migrate(
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+
+void AdEvents::RunTransaction(
+    const std::string& query,
+    GetAdEventsCallback get_ad_events_callback,
+    BindCallback bind_callback) {
+  DBCommandPtr command = DBCommand::New();
+  command->type = DBCommand::Type::READ;
+  command->command = query;
+
+  bind_callback(command);
+
+  command->record_bindings = {
+    DBCommand::RecordBindingType::STRING_TYPE,  // creative_instance_id
+    DBCommand::RecordBindingType::STRING_TYPE,  // creative_set_id
+    DBCommand::RecordBindingType::STRING_TYPE,  // campaign_id
+    DBCommand::RecordBindingType::INT64_TYPE,   // start_at_timestamp
+    DBCommand::RecordBindingType::INT64_TYPE,   // end_at_timestamp
+    DBCommand::RecordBindingType::INT_TYPE,     // daily_cap
+    DBCommand::RecordBindingType::STRING_TYPE,  // advertiser_id
+    DBCommand::RecordBindingType::INT_TYPE,     // priority
+    DBCommand::RecordBindingType::BOOL_TYPE,    // conversion
+    DBCommand::RecordBindingType::INT_TYPE,     // per_day
+    DBCommand::RecordBindingType::INT_TYPE,     // total_max
+    DBCommand::RecordBindingType::STRING_TYPE,  // segment
+    DBCommand::RecordBindingType::STRING_TYPE,  // geo_target
+    DBCommand::RecordBindingType::STRING_TYPE,  // target_url
+    DBCommand::RecordBindingType::STRING_TYPE,  // title
+    DBCommand::RecordBindingType::STRING_TYPE,  // body
+    DBCommand::RecordBindingType::DOUBLE_TYPE,  // ptr
+    DBCommand::RecordBindingType::STRING_TYPE,  // dayparts->dow
+    DBCommand::RecordBindingType::INT_TYPE,     // dayparts->start_minute
+    DBCommand::RecordBindingType::INT_TYPE      // dayparts->end_minute
+  };
+
+  DBTransactionPtr transaction = DBTransaction::New();
+  transaction->commands.push_back(std::move(command));
+
+  AdsClientHelper::Get()->RunDBTransaction(std::move(transaction),
+      std::bind(&CreativeAdNotifications::OnGetAll, this,
+          std::placeholders::_1, get_ad_events_callback));
+}
 
 void CreativeAdNotifications::InsertOrUpdate(
     DBTransaction* transaction,
@@ -328,7 +350,7 @@ std::string CreativeAdNotifications::BuildInsertOrUpdateQuery(
       BuildBindingParameterPlaceholders(5, count).c_str());
 }
 
-void CreativeAdNotifications::OnGetForSegments(
+void CreativeAdNotifications::OnGetNoExpiredForSegments(
     DBCommandResponsePtr response,
     const SegmentList& segments,
     GetCreativeAdNotificationsCallback callback) {
