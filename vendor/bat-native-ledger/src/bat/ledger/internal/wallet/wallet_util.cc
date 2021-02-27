@@ -129,14 +129,18 @@ type::ExternalWalletPtr GetWallet(LedgerImpl* ledger,
                                   const std::string wallet_type) {
   DCHECK(ledger);
   const std::string wallet_string =
-      ledger->ledger_client()->GetEncryptedStringState(
-          WalletTypeToState(wallet_type));
+      ledger->ledger_client()->GetStringState(WalletTypeToState(wallet_type));
 
   if (wallet_string.empty()) {
     return nullptr;
   }
 
-  return ExternalWalletPtrFromJSON(wallet_string, wallet_type);
+  auto json = ledger->ledger_client()->DecryptString(wallet_string);
+  if (!json) {
+    return nullptr;
+  }
+
+  return ExternalWalletPtrFromJSON(*json, wallet_type);
 }
 
 bool SetWallet(LedgerImpl* ledger,
@@ -168,12 +172,15 @@ bool SetWallet(LedgerImpl* ledger,
 
   std::string json;
   base::JSONWriter::Write(new_wallet, &json);
-  const bool success =
-      ledger->ledger_client()->SetEncryptedStringState(state, json);
 
-  BLOG_IF(0, !success, "Can't encrypt " + state + " wallet");
+  auto encrypted_json = ledger->ledger_client()->EncryptString(json);
+  if (!encrypted_json) {
+    BLOG(0, "Can't encrypt " << state << " wallet");
+    return false;
+  }
 
-  return success;
+  ledger->ledger_client()->SetStringState(state, *encrypted_json);
+  return true;
 }
 
 type::ExternalWalletPtr ResetWallet(type::ExternalWalletPtr wallet,

@@ -226,8 +226,8 @@ IN_PROC_BROWSER_TEST_F(RewardsStateBrowserTest, State_2) {
   rewards_browsertest_util::StartProcess(rewards_service_);
   const std::string wallet = R"({"payment_id":"eea767c4-cd27-4411-afd4-78a9c6b54dbc","recovery_seed":"PgFfhazUJuf8dX+8ckTjrtK1KMLyrfXmKJFDiS1Ad3I="})";  // NOLINT
   EXPECT_EQ(
-      rewards_service_->GetEncryptedStringState("wallets.brave"),
-      wallet);
+      // TODO(zenparsing): This needs to use OSCrypt/Base64Decode
+      rewards_service_->GetEncryptedStringState("wallets.brave"), wallet);
   EXPECT_EQ(
       profile_->GetPrefs()->GetUint64("brave.rewards.creation_stamp"),
       1590484778ul);

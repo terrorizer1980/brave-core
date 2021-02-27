@@ -8,21 +8,17 @@
 #include <utility>
 #include <vector>
 
-#include "base/json/json_reader.h"
-#include "bat/ledger/internal/common/security_util.h"
 #include "bat/ledger/internal/common/time_util.h"
-#include "bat/ledger/internal/ledger_impl.h"
 #include "bat/ledger/internal/constants.h"
+#include "bat/ledger/internal/ledger_impl.h"
+#include "bat/ledger/internal/rewards_wallet/rewards_wallet_manager.h"
 
 using std::placeholders::_1;
-using std::placeholders::_2;
 
 namespace ledger {
 namespace wallet {
 
-WalletCreate::WalletCreate(LedgerImpl* ledger) :
-    ledger_(ledger),
-    promotion_server_(std::make_unique<endpoint::PromotionServer>(ledger)) {
+WalletCreate::WalletCreate(LedgerImpl* ledger) : ledger_(ledger) {
   DCHECK(ledger_);
 }
 
@@ -30,47 +26,20 @@ WalletCreate::~WalletCreate() = default;
 
 void WalletCreate::Start(ledger::ResultCallback callback) {
   auto wallet = ledger_->wallet()->GetWallet();
-
   if (wallet && !wallet->payment_id.empty()) {
     BLOG(1, "Wallet already exists");
     callback(type::Result::WALLET_CREATED);
     return;
   }
 
-  wallet = type::BraveWallet::New();
-  const auto key_info_seed = util::Security::GenerateSeed();
-  wallet->recovery_seed = key_info_seed;
-  const bool success = ledger_->wallet()->SetWallet(std::move(wallet));
-
-  if (!success) {
-    BLOG(0, "Wallet couldn't be set");
-    callback(type::Result::LEDGER_ERROR);
-    return;
-  }
-
-  auto url_callback = std::bind(&WalletCreate::OnCreate,
-      this,
-      _1,
-      _2,
-      callback);
-
-  promotion_server_->post_wallet_brave()->Request(url_callback);
+  ledger_->context().Get<RewardsWalletManager>().GetRewardsWallet().Then(
+      base::BindOnce(&WalletCreate::OnCreate, base::Unretained(this),
+                     callback));
 }
 
-void WalletCreate::OnCreate(
-    const type::Result result,
-    const std::string& payment_id,
-    ledger::ResultCallback callback) {
-  if (result != type::Result::LEDGER_OK) {
-    callback(result);
-    return;
-  }
-
-  auto wallet = ledger_->wallet()->GetWallet();
-  wallet->payment_id = payment_id;
-  const bool success = ledger_->wallet()->SetWallet(std::move(wallet));
-
-  if (!success) {
+void WalletCreate::OnCreate(ledger::ResultCallback callback,
+                            optional<RewardsWallet> wallet) {
+  if (!wallet) {
     callback(type::Result::LEDGER_ERROR);
     return;
   }

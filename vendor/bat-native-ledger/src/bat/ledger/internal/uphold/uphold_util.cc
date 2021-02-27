@@ -14,7 +14,6 @@
 #include "bat/ledger/internal/ledger_impl.h"
 #include "bat/ledger/internal/state/state_keys.h"
 #include "bat/ledger/internal/uphold/uphold_util.h"
-#include "crypto/random.h"
 
 namespace ledger {
 namespace uphold {

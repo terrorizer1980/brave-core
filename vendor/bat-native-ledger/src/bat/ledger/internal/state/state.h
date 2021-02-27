@@ -113,6 +113,12 @@ class State {
 
   bool GetAnonTransferChecked();
 
+  std::string GetBitflyerWalletState();
+  bool SetBitflyerWalletState(const std::string& json);
+
+  std::string GetUpholdWalletState();
+  bool SetUpholdWalletState(const std::string& json);
+
  private:
   LedgerImpl* ledger_;  // NOT OWNED
   std::unique_ptr<StateMigration> migration_;

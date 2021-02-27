@@ -18,6 +18,8 @@
 #include "bat/ledger/internal/bitflyer/bitflyer_util.h"
 #include "bat/ledger/internal/ledger_impl.h"
 #include "bat/ledger/internal/logging/event_log_keys.h"
+#include "bat/ledger/internal/rewards_wallet/rewards_wallet_manager.h"
+#include "bat/ledger/internal/rewards_wallet/rewards_wallet_store.h"
 #include "bat/ledger/internal/state/state_keys.h"
 #include "bat/ledger/internal/uphold/uphold.h"
 #include "bat/ledger/internal/uphold/uphold_util.h"
@@ -240,49 +242,14 @@ void Wallet::DisconnectAllWallets(ledger::ResultCallback callback) {
 }
 
 type::BraveWalletPtr Wallet::GetWallet() {
-  const std::string wallet_string =
-      ledger_->ledger_client()->GetEncryptedStringState(state::kWalletBrave);
-
-  if (wallet_string.empty()) {
+  auto& wallet = ledger_->context().Get<RewardsWalletManager>().GetCurrent();
+  if (!wallet)
     return nullptr;
-  }
 
-  absl::optional<base::Value> value = base::JSONReader::Read(wallet_string);
-  if (!value || !value->is_dict()) {
-    BLOG(0, "Parsing of brave wallet failed");
-    return nullptr;
-  }
-
-  base::DictionaryValue* dictionary = nullptr;
-  if (!value->GetAsDictionary(&dictionary)) {
-    BLOG(0, "Parsing of brave wallet failed");
-    return nullptr;
-  }
-
-  auto wallet = ledger::type::BraveWallet::New();
-
-  auto* payment_id = dictionary->FindStringKey("payment_id");
-  if (!payment_id) {
-    return nullptr;
-  }
-  wallet->payment_id = *payment_id;
-
-  auto* seed = dictionary->FindStringKey("recovery_seed");
-  if (!seed) {
-    return nullptr;
-  }
-  std::string decoded_seed;
-  if (!base::Base64Decode(*seed, &decoded_seed)) {
-    BLOG(0, "Problem decoding recovery seed");
-    NOTREACHED();
-    return nullptr;
-  }
-
-  std::vector<uint8_t> vector_seed;
-  vector_seed.assign(decoded_seed.begin(), decoded_seed.end());
-  wallet->recovery_seed = vector_seed;
-
-  return wallet;
+  auto brave_wallet = ledger::type::BraveWallet::New();
+  brave_wallet->payment_id = wallet->payment_id();
+  brave_wallet->recovery_seed = wallet->recovery_seed();
+  return brave_wallet;
 }
 
 bool Wallet::SetWallet(type::BraveWalletPtr wallet) {
@@ -291,30 +258,15 @@ bool Wallet::SetWallet(type::BraveWalletPtr wallet) {
     return false;
   }
 
-  const std::string seed_string = base::Base64Encode(wallet->recovery_seed);
-  std::string event_string;
-  if (wallet->recovery_seed.size() > 1) {
-    event_string =
-        std::to_string(wallet->recovery_seed[0] + wallet->recovery_seed[1]);
-  }
+  ledger_->database()->SaveEventLog(state::kPaymentId, wallet->payment_id);
 
-  base::Value new_wallet(base::Value::Type::DICTIONARY);
-  new_wallet.SetStringKey("payment_id", wallet->payment_id);
-  new_wallet.SetStringKey("recovery_seed", seed_string);
+  auto created_at =
+      base::Time::FromDoubleT(ledger_->state()->GetCreationStamp());
 
-  std::string json;
-  base::JSONWriter::Write(new_wallet, &json);
-  const bool success = ledger_->ledger_client()->SetEncryptedStringState(
-      state::kWalletBrave,
-      json);
-  ledger_->database()->SaveEventLog(state::kRecoverySeed, event_string);
-  if (!wallet->payment_id.empty()) {
-    ledger_->database()->SaveEventLog(state::kPaymentId, wallet->payment_id);
-  }
+  ledger_->context().Get<RewardsWalletStore>().Write(
+      RewardsWallet(wallet->payment_id, wallet->recovery_seed, created_at));
 
-  BLOG_IF(0, !success, "Can't encrypt brave wallet");
-
-  return success;
+  return true;
 }
 
 void Wallet::LinkBraveWallet(const std::string& destination_payment_id,
