@@ -89,7 +89,7 @@ def Main():
         retcode = _ConvertPlist(args.plist_path, temp_info_plist.name, 'xml1')
         if retcode != 0:
             return retcode
-        plist = plistlib.readPlist(temp_info_plist.name)
+        plist = plistlib.load(temp_info_plist)
 
     output_path = args.plist_path
     if args.plist_output is not None:
@@ -116,7 +116,7 @@ def Main():
 
     # Now that all keys have been mutated, rewrite the file.
     with tempfile.NamedTemporaryFile() as temp_info_plist:
-        plistlib.writePlist(plist, temp_info_plist.name)
+        plistlib.dump(plist, temp_info_plist)
 
         # Convert Info.plist to the format requested by the --format flag. Any
         # format would work on Mac but iOS requires specific format.
