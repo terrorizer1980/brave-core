@@ -8,8 +8,9 @@
 
 #include <stdint.h>
 
-#include <memory>
+#include <list>
 #include <map>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -370,7 +371,17 @@ class LedgerImpl : public ledger::Ledger {
 
   void OnAllDone(const type::Result result, ledger::ResultCallback callback);
 
+  void WhenReady(std::function<void()> on_ready);
+
+  enum class ReadyState {
+    kUninitialized,
+    kInitializing,
+    kReady,
+    kShuttingDown,
+  };
+
   ledger::LedgerClient* ledger_client_;
+
   std::unique_ptr<BATLedgerContext> context_;
   std::unique_ptr<promotion::Promotion> promotion_;
   std::unique_ptr<publisher::Publisher> publisher_;
@@ -385,15 +396,13 @@ class LedgerImpl : public ledger::Ledger {
   std::unique_ptr<recovery::Recovery> recovery_;
   std::unique_ptr<bitflyer::Bitflyer> bitflyer_;
   std::unique_ptr<uphold::Uphold> uphold_;
-  scoped_refptr<base::SequencedTaskRunner> task_runner_;
-  bool initialized_task_scheduler_;
 
-  bool initializing_;
-  bool shutting_down_ = false;
+  ReadyState ready_state_ = ReadyState::kUninitialized;
+  std::list<std::function<void()>> ready_callbacks_;
 
   std::map<uint32_t, type::VisitData> current_pages_;
-  uint64_t last_tab_active_time_;
-  uint32_t last_shown_tab_id_;
+  uint64_t last_tab_active_time_ = 0;
+  uint32_t last_shown_tab_id_ = -1;
 };
 
 }  // namespace ledger

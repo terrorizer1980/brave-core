@@ -34,42 +34,16 @@ LedgerImpl::LedgerImpl(ledger::LedgerClient* client)
       wallet_(std::make_unique<wallet::Wallet>(this)),
       database_(std::make_unique<database::Database>(this)),
       report_(std::make_unique<report::Report>(this)),
+      sku_(sku::SKUFactory::Create(this, sku::SKUType::kMerchant)),
       state_(std::make_unique<state::State>(this)),
       api_(std::make_unique<api::API>(this)),
       recovery_(std::make_unique<recovery::Recovery>(this)),
       bitflyer_(std::make_unique<bitflyer::Bitflyer>(this)),
-      uphold_(std::make_unique<uphold::Uphold>(this)),
-      initialized_task_scheduler_(false),
-      initializing_(false),
-      last_tab_active_time_(0),
-      last_shown_tab_id_(-1) {
-  // Ensure ThreadPoolInstance is initialized before creating the task runner
-  // for ios.
+      uphold_(std::make_unique<uphold::Uphold>(this)) {
   set_ledger_client_for_logging(ledger_client_);
-
-  if (!base::ThreadPoolInstance::Get()) {
-    base::ThreadPoolInstance::CreateAndStartWithDefaultParams("bat_ledger");
-
-    DCHECK(base::ThreadPoolInstance::Get());
-    initialized_task_scheduler_ = true;
-  }
-
-  task_runner_ = base::ThreadPool::CreateSequencedTaskRunner(
-      {base::MayBlock(), base::TaskPriority::BEST_EFFORT,
-       base::TaskShutdownBehavior::BLOCK_SHUTDOWN});
-
-  sku_ = sku::SKUFactory::Create(
-      this,
-      sku::SKUType::kMerchant);
-  DCHECK(sku_);
 }
 
-LedgerImpl::~LedgerImpl() {
-  if (initialized_task_scheduler_) {
-    DCHECK(base::ThreadPoolInstance::Get());
-    base::ThreadPoolInstance::Get()->Shutdown();
-  }
-}
+LedgerImpl::~LedgerImpl() = default;
 
 BATLedgerContext* LedgerImpl::context() const {
   return context_.get();
@@ -131,7 +105,7 @@ void LedgerImpl::LoadURL(
     type::UrlRequestPtr request,
     client::LoadURLCallback callback) {
   DCHECK(request);
-  if (shutting_down_) {
+  if (IsShuttingDown()) {
     BLOG(1, request->url + " will not be executed as we are shutting down");
     return;
   }
@@ -161,13 +135,12 @@ void LedgerImpl::StartServices() {
 void LedgerImpl::Initialize(
     const bool execute_create_script,
     ledger::ResultCallback callback) {
-  DCHECK(!initializing_);
-  if (initializing_) {
-    BLOG(1, "Already initializing ledger");
+  if (ready_state_ != ReadyState::kUninitialized) {
+    BLOG(0, "Ledger already initializing");
     return;
   }
 
-  initializing_ = true;
+  ready_state_ = ReadyState::kInitializing;
   InitializeDatabase(execute_create_script, callback);
 }
 
@@ -190,8 +163,6 @@ void LedgerImpl::InitializeDatabase(
 void LedgerImpl::OnInitialized(
     const type::Result result,
     ledger::ResultCallback callback) {
-  initializing_ = false;
-
   if (result == type::Result::LEDGER_OK) {
     StartServices();
   } else {
@@ -199,6 +170,14 @@ void LedgerImpl::OnInitialized(
   }
 
   callback(result);
+
+  ready_state_ = ReadyState::kReady;
+
+  for (auto& on_ready : ready_callbacks_) {
+    on_ready();
+  }
+
+  ready_callbacks_.clear();
 }
 
 void LedgerImpl::OnDatabaseInitialized(
@@ -399,7 +378,8 @@ void LedgerImpl::GetExcludedList(ledger::PublisherInfoListCallback callback) {
 }
 
 void LedgerImpl::SetPublisherMinVisitTime(int duration) {
-  state()->SetPublisherMinVisitTime(duration);
+  WhenReady(
+      [this, duration]() { state()->SetPublisherMinVisitTime(duration); });
 }
 
 void LedgerImpl::SetPublisherMinVisits(int visits) {
@@ -597,7 +577,7 @@ void LedgerImpl::SaveRecurringTip(
 }
 
 void LedgerImpl::GetRecurringTips(ledger::PublisherInfoListCallback callback) {
-  contribution()->GetRecurringTips(callback);
+  WhenReady([this, callback]() { contribution()->GetRecurringTips(callback); });
 }
 
 void LedgerImpl::GetOneTimeTips(ledger::PublisherInfoListCallback callback) {
@@ -782,7 +762,7 @@ void LedgerImpl::GetContributionReport(
 
 void LedgerImpl::GetAllContributions(
     ledger::ContributionInfoListCallback callback) {
-  database()->GetAllContributions(callback);
+  WhenReady([this, callback]() { database()->GetAllContributions(callback); });
 }
 
 void LedgerImpl::SavePublisherInfoForTip(
@@ -811,7 +791,7 @@ void LedgerImpl::ProcessSKU(
 }
 
 void LedgerImpl::Shutdown(ledger::ResultCallback callback) {
-  shutting_down_ = true;
+  ready_state_ = ReadyState::kShuttingDown;
   ledger_client_->ClearAllNotifications();
 
   wallet()->DisconnectAllWallets([this, callback](
@@ -835,15 +815,17 @@ void LedgerImpl::OnAllDone(
 }
 
 void LedgerImpl::GetEventLogs(ledger::GetEventLogsCallback callback) {
-  database()->GetLastEventLogs(callback);
+  WhenReady([this, callback]() {
+    database()->GetLastEventLogs(callback);
+  });
 }
 
 bool LedgerImpl::IsShuttingDown() const {
-  return shutting_down_;
+  return ready_state_ == ReadyState::kShuttingDown;
 }
 
 void LedgerImpl::GetBraveWallet(GetBraveWalletCallback callback) {
-  callback(wallet()->GetWallet());
+  WhenReady([this, callback]() { callback(wallet()->GetWallet()); });
 }
 
 std::string LedgerImpl::GetWalletPassphrase() const {
@@ -857,16 +839,38 @@ std::string LedgerImpl::GetWalletPassphrase() const {
 
 void LedgerImpl::LinkBraveWallet(const std::string& destination_payment_id,
                                  PostSuggestionsClaimCallback callback) {
-  wallet()->LinkBraveWallet(destination_payment_id, callback);
+  WhenReady([this, destination_payment_id, callback]() {
+    wallet()->LinkBraveWallet(destination_payment_id, callback);
+  });
 }
 
 void LedgerImpl::GetTransferableAmount(GetTransferableAmountCallback callback) {
-  promotion()->GetTransferableAmount(callback);
+  WhenReady([this, callback]() {
+    promotion()->GetTransferableAmount(callback);
+  });
 }
 
 void LedgerImpl::GetDrainStatus(const std::string& drain_id,
                                 ledger::GetDrainCallback callback) {
-  promotion()->GetDrainStatus(drain_id, callback);
+  WhenReady([this, drain_id, callback]() {
+    promotion()->GetDrainStatus(drain_id, callback);
+  });
+}
+
+void LedgerImpl::WhenReady(std::function<void()> on_ready) {
+  switch (ready_state_) {
+    case ReadyState::kReady:
+      // TODO: Ideally this would not be called synchronously
+      on_ready();
+      break;
+    case ReadyState::kShuttingDown:
+      // If the ledger is shutting down, then the only thing we can do is drop
+      // the callback.
+      break;
+    default:
+      ready_callbacks_.push_back(on_ready);
+      break;
+  }
 }
 
 }  // namespace ledger
