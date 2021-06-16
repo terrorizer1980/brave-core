@@ -124,6 +124,8 @@ void BraveSearchDefaultJSHandler::OnCanSetDefaultSearchProvider(
   v8::HandleScope handle_scope(isolate);
   v8::Local<v8::Context> context = context_old->Get(isolate);
   v8::Context::Scope context_scope(context);
+  v8::MicrotasksScope microtasks(isolate,
+                                 v8::MicrotasksScope::kDoNotRunMicrotasks);
 
   v8::Local<v8::Promise::Resolver> resolver = promise_resolver->Get(isolate);
   v8::Local<v8::Boolean> result;
