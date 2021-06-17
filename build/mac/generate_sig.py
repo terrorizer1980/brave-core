@@ -26,17 +26,18 @@ def Main():
     args = parser.parse_args()
 
     # sign file with the specified algorithm
-    with open(args.output, 'w') as file:
-        if args.dsa:
-            command = [args.sign_update_path, args.target, args.sign_key_file]
-        else:
-            # EdDSA
-            command = [args.sign_update_path, '-s', args.sign_key, args.target]
-        try:
-            subprocess.check_call(command, stdout=file)
-        except subprocess.CalledProcessError as e:
-            print(e.output)
-            raise e
+    file = open(args.output, 'w')
+    if args.dsa:
+        command = [args.sign_update_path, args.target, args.sign_key_file]
+    else:
+        # EdDSA
+        command = [args.sign_update_path, '-s', args.sign_key, args.target]
+    try:
+        subprocess.check_call(command, stdout=file)
+    except subprocess.CalledProcessError as e:
+        print(e.output)
+        raise e
+    file.close()
 
     return 0
 
