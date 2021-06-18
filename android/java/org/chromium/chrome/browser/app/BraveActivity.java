@@ -66,6 +66,7 @@ import org.chromium.chrome.browser.compositor.layouts.Layout;
 import org.chromium.chrome.browser.compositor.layouts.LayoutManagerChrome;
 import org.chromium.chrome.browser.compositor.layouts.LayoutManagerImpl;
 import org.chromium.chrome.browser.compositor.layouts.phone.StackLayout;
+import org.chromium.chrome.browser.crypto_wallet.CryptoWalletActivity;
 import org.chromium.chrome.browser.dependency_injection.ChromeActivityComponent;
 import org.chromium.chrome.browser.flags.ChromeSwitches;
 import org.chromium.chrome.browser.informers.BraveAndroidSyncDisabledInformer;
@@ -74,7 +75,6 @@ import org.chromium.chrome.browser.notifications.retention.RetentionNotification
 import org.chromium.chrome.browser.ntp.NewTabPage;
 import org.chromium.chrome.browser.onboarding.OnboardingActivity;
 import org.chromium.chrome.browser.onboarding.OnboardingPrefManager;
-import org.chromium.chrome.browser.onboarding.P3aOnboardingActivity;
 import org.chromium.chrome.browser.onboarding.v2.HighlightDialogFragment;
 import org.chromium.chrome.browser.preferences.BravePrefServiceBridge;
 import org.chromium.chrome.browser.preferences.BravePreferenceKeys;
@@ -195,6 +195,8 @@ public abstract class BraveActivity<C extends ChromeActivityComponent>
             handleBraveSetDefaultBrowserDialog();
         } else if (id == R.id.brave_rewards_id) {
             openNewOrSelectExistingTab(REWARDS_SETTINGS_URL);
+        } else if (id == R.id.brave_wallet_id) {
+            openBraveWallet();
         } else {
             return false;
         }
@@ -364,13 +366,6 @@ public abstract class BraveActivity<C extends ChromeActivityComponent>
             OnboardingPrefManager.getInstance().setP3AEnabledForExistingUsers(true);
         }
 
-        if (BraveConfig.P3A_ENABLED
-                && !OnboardingPrefManager.getInstance().isP3aOnboardingShown()) {
-            Intent p3aOnboardingIntent = new Intent(this, P3aOnboardingActivity.class);
-            p3aOnboardingIntent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
-            startActivity(p3aOnboardingIntent);
-        }
-
         if (!OnboardingPrefManager.getInstance().isOneTimeNotificationStarted()
                 && PackageUtils.isFirstInstall(this)) {
             RetentionNotificationUtil.scheduleNotification(this, RetentionNotificationUtil.HOUR_3);
@@ -417,6 +412,12 @@ public abstract class BraveActivity<C extends ChromeActivityComponent>
                     calender.getTimeInMillis());
         }
         checkSetDefaultBrowserModal();
+    }
+
+    private void openBraveWallet() {
+        Intent cryptoWalletIntent = new Intent(this, CryptoWalletActivity.class);
+        cryptoWalletIntent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        startActivity(cryptoWalletIntent);
     }
 
     private void checkSetDefaultBrowserModal() {
@@ -731,6 +732,9 @@ public abstract class BraveActivity<C extends ChromeActivityComponent>
             if (! TextUtils.isEmpty(open_url)) {
                 openNewOrSelectExistingTab(open_url);
             }
+        } else if (resultCode == RESULT_OK
+                && requestCode == BraveStatsUtil.SHARE_STATS_REQUEST_CODE) {
+            BraveStatsUtil.removeShareStatsFile();
         }
         super.onActivityResult(requestCode, resultCode, data);
     }

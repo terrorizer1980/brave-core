@@ -27,8 +27,8 @@ brave_wallet::BraveWalletService* GetBraveWalletService(
 }  // namespace
 
 WalletPageHandler::WalletPageHandler(
-    mojo::PendingReceiver<wallet_ui::mojom::PageHandler> receiver,
-    mojo::PendingRemote<wallet_ui::mojom::Page> page,
+    mojo::PendingReceiver<brave_wallet::mojom::PageHandler> receiver,
+    mojo::PendingRemote<brave_wallet::mojom::Page> page,
     content::WebUI* web_ui,
     ui::MojoWebUIController* webui_controller)
     : receiver_(this, std::move(receiver)),
@@ -57,6 +57,19 @@ void WalletPageHandler::GetRecoveryWords(GetRecoveryWordsCallback callback) {
       GetBraveWalletService(browser_context)->keyring_controller();
   keyring_controller->GetMnemonicForDefaultKeyring();
   std::move(callback).Run(keyring_controller->GetMnemonicForDefaultKeyring());
+}
+
+void WalletPageHandler::RestoreWallet(const std::string& mnemonic,
+                                      const std::string& password,
+                                      RestoreWalletCallback callback) {
+  auto* browser_context = web_ui_->GetWebContents()->GetBrowserContext();
+  auto* keyring_controller =
+      GetBraveWalletService(browser_context)->keyring_controller();
+  auto* keyring = keyring_controller->RestoreDefaultKeyring(mnemonic, password);
+  if (keyring) {
+    keyring->AddAccounts();
+  }
+  std::move(callback).Run(keyring);
 }
 
 void WalletPageHandler::OnVisibilityChanged(content::Visibility visibility) {

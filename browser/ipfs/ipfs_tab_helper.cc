@@ -157,10 +157,16 @@ void IPFSTabHelper::UpdateLocationBar() {
         web_contents(), content::INVALIDATE_TYPE_URL);
 }
 
+GURL IPFSTabHelper::GetCurrentPageURL() const {
+  if (current_page_url_for_testing_.is_valid())
+    return current_page_url_for_testing_;
+  return web_contents()->GetVisibleURL();
+}
+
 GURL IPFSTabHelper::GetIPFSResolvedURL() const {
   if (!ipfs_resolved_url_.is_valid())
     return GURL();
-  GURL current = web_contents()->GetURL();
+  GURL current = GetCurrentPageURL();
   GURL::Replacements replacements;
   replacements.SetQueryStr(current.query_piece());
   replacements.SetRefStr(current.ref_piece());
@@ -172,8 +178,9 @@ GURL IPFSTabHelper::GetIPFSResolvedURL() const {
   std::vector<std::string> parts = base::SplitString(
       current.path(), "/", base::KEEP_WHITESPACE, base::SPLIT_WANT_ALL);
   // If public gateway like https://ipfs.io/ipfs/{cid}/..
+  // or for IPNS like ipns://branty.eth/path/..
   // skip duplication for /{scheme}/{cid}/ and add the rest parts
-  if (parts.size() > 3 && parts[1] == resolved_scheme && parts[2] == cid) {
+  if (parts.size() >= 3 && parts[2] == cid) {
     parts.erase(parts.begin() + 1, parts.begin() + 3);
     resolved_path = base::JoinString(parts, "/");
   }
@@ -215,9 +222,9 @@ void IPFSTabHelper::UpdateDnsLinkButtonState() {
     }
     return;
   }
-
-  GURL current = web_contents()->GetURL();
-  if (ipfs_resolved_url_.is_valid() && resolver_->host() != current.host()) {
+  GURL current = GetCurrentPageURL();
+  if (!ipfs_resolved_url_.is_valid() || (resolver_->host() != current.host()) ||
+      !CanResolveURL(current)) {
     ipfs_resolved_url_ = GURL();
     UpdateLocationBar();
   }
@@ -228,21 +235,20 @@ bool IPFSTabHelper::CanResolveURL(const GURL& url) const {
          !IsAPIGateway(url.GetOrigin(), chrome::GetChannel());
 }
 
-void IPFSTabHelper::MaybeShowDNSLinkButton(content::NavigationHandle* handle) {
+void IPFSTabHelper::MaybeShowDNSLinkButton(
+    const net::HttpResponseHeaders* headers) {
   UpdateDnsLinkButtonState();
-  if (!IsDNSLinkCheckEnabled() || !handle->GetResponseHeaders())
-    return;
-  if (ipfs_resolved_url_.is_valid() && !CanResolveURL(web_contents()->GetURL()))
+  if (!IsDNSLinkCheckEnabled() || !headers || ipfs_resolved_url_.is_valid() ||
+      !CanResolveURL(GetCurrentPageURL()))
     return;
 
-  int response_code = handle->GetResponseHeaders()->response_code();
+  int response_code = headers->response_code();
   if (response_code >= net::HttpStatusCode::HTTP_INTERNAL_SERVER_ERROR &&
       response_code <= net::HttpStatusCode::HTTP_VERSION_NOT_SUPPORTED) {
     ResolveIPFSLink();
-  } else if (handle->GetResponseHeaders()->HasHeader(kIfpsPathHeader)) {
+  } else if (headers->HasHeader(kIfpsPathHeader)) {
     std::string ipfs_path_value;
-    if (!handle->GetResponseHeaders()->GetNormalizedHeader(kIfpsPathHeader,
-                                                           &ipfs_path_value))
+    if (!headers->GetNormalizedHeader(kIfpsPathHeader, &ipfs_path_value))
       return;
     GURL resolved_url = ParseURLFromHeader(ipfs_path_value);
     if (resolved_url.is_valid())
@@ -274,7 +280,7 @@ void IPFSTabHelper::DidFinishNavigation(content::NavigationHandle* handle) {
       handle->GetResponseHeaders()->HasHeader(kIfpsPathHeader)) {
     MaybeSetupIpfsProtocolHandlers(handle->GetURL());
   }
-  MaybeShowDNSLinkButton(handle);
+  MaybeShowDNSLinkButton(handle->GetResponseHeaders());
 }
 
 WEB_CONTENTS_USER_DATA_KEY_IMPL(IPFSTabHelper)

@@ -69,6 +69,7 @@ const char kRegionalAdBlockComponentTest64PublicKey[] =
     "LwIDAQAB";
 
 using brave_shields::features::kBraveAdblockCnameUncloaking;
+using brave_shields::features::kBraveAdblockCollapseBlockedElements;
 using brave_shields::features::kBraveAdblockCosmeticFiltering;
 using content::BrowserThread;
 
@@ -221,6 +222,10 @@ void AdBlockServiceTest::WaitForBraveExtensionShieldsDataReady() {
   ExtensionTestMessageListener extension_listener(
       "brave-extension-shields-data-ready", false);
   ASSERT_TRUE(extension_listener.WaitUntilSatisfied());
+}
+
+void AdBlockServiceTest::ShieldsDown(const GURL& url) {
+  brave_shields::SetBraveShieldsEnabled(content_settings(), false, url);
 }
 
 // Load a page with an ad image, and make sure it is blocked.
@@ -1032,6 +1037,106 @@ IN_PROC_BROWSER_TEST_F(AdBlockServiceTest, TagPrefsControlTags) {
   AssertTagExists(brave_shields::kLinkedInEmbeds, false);
 }
 
+// Load a page with a blocked image, and make sure it is collapsed.
+IN_PROC_BROWSER_TEST_F(AdBlockServiceTest, CollapseBlockedImage) {
+  ASSERT_TRUE(InstallDefaultAdBlockExtension());
+  EXPECT_EQ(browser()->profile()->GetPrefs()->GetUint64(kAdsBlocked), 0ULL);
+
+  GURL url = embedded_test_server()->GetURL(kAdBlockTestPage);
+  ui_test_utils::NavigateToURL(browser(), url);
+  content::WebContents* contents =
+      browser()->tab_strip_model()->GetActiveWebContents();
+
+  EXPECT_EQ(true, EvalJs(contents,
+                         "setExpectations(0, 1, 0, 0);"
+                         "addImage('ad_banner.png')"));
+  EXPECT_EQ(browser()->profile()->GetPrefs()->GetUint64(kAdsBlocked), 1ULL);
+
+  // There is no way for JS to directly tell if an element has been collapsed,
+  // but the clientHeight property is zero for collapsed elements and nonzero
+  // otherwise.
+  EXPECT_EQ(true, EvalJs(contents,
+                         "let i = document.getElementsByClassName('adImage');"
+                         "i[0].clientHeight === 0"));
+}
+
+// Load a page with a blocked iframe, and make sure it is collapsed.
+IN_PROC_BROWSER_TEST_F(AdBlockServiceTest, CollapseBlockedIframe) {
+  ASSERT_TRUE(InstallDefaultAdBlockExtension());
+  EXPECT_EQ(browser()->profile()->GetPrefs()->GetUint64(kAdsBlocked), 0ULL);
+
+  GURL url = embedded_test_server()->GetURL(kAdBlockTestPage);
+  ui_test_utils::NavigateToURL(browser(), url);
+  content::WebContents* contents =
+      browser()->tab_strip_model()->GetActiveWebContents();
+
+  EXPECT_EQ(true, EvalJs(contents, "addFrame('ad_banner.png')"));
+  EXPECT_EQ(browser()->profile()->GetPrefs()->GetUint64(kAdsBlocked), 1ULL);
+
+  // There is no way for JS to directly tell if an element has been collapsed,
+  // but the clientHeight property is zero for collapsed elements and nonzero
+  // otherwise.
+  EXPECT_EQ(true, EvalJs(contents,
+                         "let i = document.getElementsByClassName('adFrame');"
+                         "i[0].clientHeight === 0"));
+}
+
+class CollapseBlockedElementsFlagDisabledTest : public AdBlockServiceTest {
+ public:
+  CollapseBlockedElementsFlagDisabledTest() {
+    feature_list_.InitAndDisableFeature(kBraveAdblockCollapseBlockedElements);
+  }
+
+ private:
+  base::test::ScopedFeatureList feature_list_;
+};
+
+// Load a page with a blocked image, and make sure it is not collapsed.
+IN_PROC_BROWSER_TEST_F(CollapseBlockedElementsFlagDisabledTest,
+                       DontCollapseBlockedImage) {
+  ASSERT_TRUE(InstallDefaultAdBlockExtension());
+  EXPECT_EQ(browser()->profile()->GetPrefs()->GetUint64(kAdsBlocked), 0ULL);
+
+  GURL url = embedded_test_server()->GetURL(kAdBlockTestPage);
+  ui_test_utils::NavigateToURL(browser(), url);
+  content::WebContents* contents =
+      browser()->tab_strip_model()->GetActiveWebContents();
+
+  EXPECT_EQ(true, EvalJs(contents,
+                         "setExpectations(0, 1, 0, 0);"
+                         "addImage('ad_banner.png')"));
+  EXPECT_EQ(browser()->profile()->GetPrefs()->GetUint64(kAdsBlocked), 1ULL);
+
+  // There is no way for JS to directly tell if an element has been collapsed,
+  // but the clientHeight property is zero for collapsed elements and nonzero
+  // otherwise.
+  EXPECT_EQ(true, EvalJs(contents,
+                         "let i = document.getElementsByClassName('adImage');"
+                         "i[0].clientHeight !== 0"));
+}
+
+// Load a page with a blocked iframe, and make sure it is not collapsed.
+IN_PROC_BROWSER_TEST_F(CollapseBlockedElementsFlagDisabledTest,
+                       DontCollapseBlockedIframe) {
+  ASSERT_TRUE(InstallDefaultAdBlockExtension());
+  EXPECT_EQ(browser()->profile()->GetPrefs()->GetUint64(kAdsBlocked), 0ULL);
+
+  GURL url = embedded_test_server()->GetURL(kAdBlockTestPage);
+  ui_test_utils::NavigateToURL(browser(), url);
+  content::WebContents* contents =
+      browser()->tab_strip_model()->GetActiveWebContents();
+
+  EXPECT_EQ(true, EvalJs(contents, "addFrame('ad_banner.png')"));
+  EXPECT_EQ(browser()->profile()->GetPrefs()->GetUint64(kAdsBlocked), 1ULL);
+
+  // There is no way for JS to directly tell if an element has been collapsed,
+  // but the clientHeight property is zero for collapsed elements and nonzero
+  // otherwise.
+  EXPECT_EQ(true, EvalJs(contents,
+                         "let i = document.getElementsByClassName('adFrame');"
+                         "i[0].clientHeight !== 0"));
+}
+
 // Load a page with a script which uses a redirect data URL.
 IN_PROC_BROWSER_TEST_F(AdBlockServiceTest, RedirectRulesAreRespected) {
   UpdateAdBlockInstanceWithRules("js_mock_me.js$redirect=noopjs",
@@ -1079,12 +1184,12 @@ IN_PROC_BROWSER_TEST_F(AdBlockServiceTest, CspRule) {
       browser()->tab_strip_model()->GetActiveWebContents();
 
   auto res = EvalJs(contents, "await window.allLoaded");
-  ASSERT_EQ(true, EvalJs(contents, "!!window.loadedNonceScript"));
-  ASSERT_EQ(true, EvalJs(contents, "!!window.loadedEvalScript"));
-  ASSERT_EQ(true, EvalJs(contents, "!!window.loadedSamePartyScript"));
-  ASSERT_EQ(false, EvalJs(contents, "!!window.loadedThirdPartyScript"));
-  ASSERT_EQ(false, EvalJs(contents, "!!window.loadedUnsafeInlineScript"));
-  ASSERT_EQ(true, EvalJs(contents, "!!window.loadedDataImage"));
+  EXPECT_EQ(true, EvalJs(contents, "!!window.loadedNonceScript"));
+  EXPECT_EQ(true, EvalJs(contents, "!!window.loadedEvalScript"));
+  EXPECT_EQ(true, EvalJs(contents, "!!window.loadedSamePartyScript"));
+  EXPECT_EQ(false, EvalJs(contents, "!!window.loadedThirdPartyScript"));
+  EXPECT_EQ(false, EvalJs(contents, "!!window.loadedUnsafeInlineScript"));
+  EXPECT_EQ(true, EvalJs(contents, "!!window.loadedDataImage"));
 
   // Violations of injected CSP directives do not increment the Shields counter
   EXPECT_EQ(browser()->profile()->GetPrefs()->GetUint64(kAdsBlocked), 0ULL);
@@ -1112,14 +1217,40 @@ IN_PROC_BROWSER_TEST_F(AdBlockServiceTest, CspRuleMerging) {
       browser()->tab_strip_model()->GetActiveWebContents();
 
   auto res = EvalJs(contents, "await window.allLoaded");
-  ASSERT_EQ(true, EvalJs(contents, "!!window.loadedNonceScript"));
-  ASSERT_EQ(true, EvalJs(contents, "!!window.loadedEvalScript"));
-  ASSERT_EQ(false, EvalJs(contents, "!!window.loadedSamePartyScript"));
-  ASSERT_EQ(false, EvalJs(contents, "!!window.loadedThirdPartyScript"));
-  ASSERT_EQ(false, EvalJs(contents, "!!window.loadedUnsafeInlineScript"));
-  ASSERT_EQ(false, EvalJs(contents, "!!window.loadedDataImage"));
+  EXPECT_EQ(true, EvalJs(contents, "!!window.loadedNonceScript"));
+  EXPECT_EQ(true, EvalJs(contents, "!!window.loadedEvalScript"));
+  EXPECT_EQ(false, EvalJs(contents, "!!window.loadedSamePartyScript"));
+  EXPECT_EQ(false, EvalJs(contents, "!!window.loadedThirdPartyScript"));
+  EXPECT_EQ(false, EvalJs(contents, "!!window.loadedUnsafeInlineScript"));
+  EXPECT_EQ(false, EvalJs(contents, "!!window.loadedDataImage"));
 
   // Violations of injected CSP directives do not increment the Shields counter
+  EXPECT_EQ(browser()->profile()->GetPrefs()->GetUint64(kAdsBlocked), 0ULL);
+}
+
+// Verify that scripts violating a Content Security Policy from a `$csp` rule
+// are not loaded.
+IN_PROC_BROWSER_TEST_F(AdBlockServiceTest, CspRuleShieldsDown) {
+  UpdateAdBlockInstanceWithRules(
+      "||example.com^$csp=script-src 'nonce-abcdef' 'unsafe-eval' 'self'");
+  EXPECT_EQ(browser()->profile()->GetPrefs()->GetUint64(kAdsBlocked), 0ULL);
+
+  const GURL url =
+      embedded_test_server()->GetURL("example.com", "/csp_rules.html");
+  ShieldsDown(url);
+
+  ui_test_utils::NavigateToURL(browser(), url);
+  content::WebContents* contents =
+      browser()->tab_strip_model()->GetActiveWebContents();
+
+  auto res = EvalJs(contents, "await window.allLoaded");
+  EXPECT_EQ(true, EvalJs(contents, "!!window.loadedNonceScript"));
+  EXPECT_EQ(true, EvalJs(contents, "!!window.loadedEvalScript"));
+  EXPECT_EQ(true, EvalJs(contents, "!!window.loadedSamePartyScript"));
+  EXPECT_EQ(true, EvalJs(contents, "!!window.loadedThirdPartyScript"));
+  EXPECT_EQ(true, EvalJs(contents, "!!window.loadedUnsafeInlineScript"));
+  EXPECT_EQ(true, EvalJs(contents, "!!window.loadedDataImage"));
+
   EXPECT_EQ(browser()->profile()->GetPrefs()->GetUint64(kAdsBlocked), 0ULL);
 }
 

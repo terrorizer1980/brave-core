@@ -5,69 +5,77 @@
 
 import 'chrome://resources/mojo/mojo/public/js/mojo_bindings_lite.js'
 import 'chrome://resources/mojo/url/mojom/url.mojom-lite.js'
-import 'chrome://resources/mojo/brave/components/brave_wallet_ui/wallet_ui.mojom-lite.js'
+import 'chrome://resources/mojo/brave/components/brave_wallet/common/brave_wallet.mojom-lite.js'
 
-import {addSingletonGetter} from 'chrome://resources/js/cr.m.js'
+import { addSingletonGetter } from 'chrome://resources/js/cr.m.js'
 
 /** @interface */
 class WalletPageApiProxy {
   /**
    * @param {string} password
+   * @param {string} mnemonic
    */
-  createWallet(password) {}
+  createWallet (password) { }
 
-  getRecoveryWords(password) {}
+  restoreWallet (mnemonic, password) { }
 
-  notifyWalletBackupComplete() {}
+  getRecoveryWords (password) { }
 
-  /** @return {!walletUi.mojom.PageCallbackRouter} */
-  getCallbackRouter() {}
+  notifyWalletBackupComplete () { }
 
-  getWalletHandler() {}
+  /** @return {!braveWallet.mojom.PageCallbackRouter} */
+  getCallbackRouter () { }
+
+  getWalletHandler () { }
 }
 
 /** @implements {WalletPageApiProxy} */
 export default class WalletPageApiProxyImpl {
   constructor() {
-    /** @type {!walletUi.mojom.PageCallbackRouter} */
-    this.callbackRouter = new walletUi.mojom.PageCallbackRouter();
+    /** @type {!braveWallet.mojom.PageCallbackRouter} */
+    this.callbackRouter = new braveWallet.mojom.PageCallbackRouter();
 
-    /** @type {!walletUi.mojom.PageHandlerRemote} */
-    this.page_handler = new walletUi.mojom.PageHandlerRemote();
-    /** @type {!walletUi.mojom.WalletHandlerRemote} */
-    this.wallet_handler = new walletUi.mojom.WalletHandlerRemote();
+    /** @type {!braveWallet.mojom.PageHandlerRemote} */
+    this.page_handler = new braveWallet.mojom.PageHandlerRemote();
+    /** @type {!braveWallet.mojom.WalletHandlerRemote} */
+    this.wallet_handler = new braveWallet.mojom.WalletHandlerRemote();
 
-    const factory = walletUi.mojom.PageHandlerFactory.getRemote();
+    const factory = braveWallet.mojom.PageHandlerFactory.getRemote();
     factory.createPageHandler(
-        this.callbackRouter.$.bindNewPipeAndPassRemote(),
-        this.page_handler.$.bindNewPipeAndPassReceiver(),
-        this.wallet_handler.$.bindNewPipeAndPassReceiver());
+      this.callbackRouter.$.bindNewPipeAndPassRemote(),
+      this.page_handler.$.bindNewPipeAndPassReceiver(),
+      this.wallet_handler.$.bindNewPipeAndPassReceiver());
   }
 
   /** @override */
-  createWallet(password) {
+  createWallet (password) {
     return this.page_handler.createWallet(password);
   }
 
   /** @override */
-  getRecoveryWords(password) {
+  restoreWallet (mnemonic, password) {
+    return this.page_handler.restoreWallet(mnemonic, password);
+  }
+
+  /** @override */
+  getRecoveryWords (password) {
     return this.page_handler.getRecoveryWords();
   }
 
   /** @override */
-  notifyWalletBackupComplete() {
+  notifyWalletBackupComplete () {
     return this.wallet_handler.notifyWalletBackupComplete();
   }
 
   /** @override */
-  getCallbackRouter() {
+  getCallbackRouter () {
     return this.callbackRouter;
   }
 
   /** @override */
-  getWalletHandler() {
+  getWalletHandler () {
     return this.wallet_handler;
-  } 
+  }
 }
 
 addSingletonGetter(WalletPageApiProxyImpl);

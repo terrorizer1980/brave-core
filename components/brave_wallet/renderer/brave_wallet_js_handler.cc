@@ -18,7 +18,6 @@
 #include "brave/components/brave_wallet/resources/grit/brave_wallet_script_generated.h"
 #include "content/public/renderer/render_frame.h"
 #include "content/public/renderer/v8_value_converter.h"
-#include "gin/arguments.h"
 #include "gin/function_template.h"
 #include "third_party/blink/public/common/browser_interface_broker_proxy.h"
 #include "third_party/blink/public/web/blink.h"
@@ -95,6 +94,7 @@ BraveWalletJSHandler::BraveWalletJSHandler(content::RenderFrame* render_frame)
     *g_provider_script =
         LoadDataResource(IDR_BRAVE_WALLET_SCRIPT_BRAVE_WALLET_SCRIPT_BUNDLE_JS);
   }
+  EnsureConnected();
 }
 
 BraveWalletJSHandler::~BraveWalletJSHandler() = default;
@@ -107,6 +107,13 @@ bool BraveWalletJSHandler::EnsureConnected() {
   }
 
   return brave_wallet_provider_.is_bound();
+}
+
+void BraveWalletJSHandler::ResetRemote(content::RenderFrame* render_frame) {
+  render_frame_ = render_frame;
+  brave_wallet_provider_.reset();
+  receiver_.reset();
+  EnsureConnected();
 }
 
 void BraveWalletJSHandler::AddJavaScriptObjectToFrame(
@@ -151,6 +158,15 @@ void BraveWalletJSHandler::BindFunctionsToObject(
   BindFunctionToObject(isolate, javascript_object, "isConnected",
                        base::BindRepeating(&BraveWalletJSHandler::IsConnected,
                                            base::Unretained(this)));
+  BindFunctionToObject(isolate, javascript_object, "enable",
+                       base::BindRepeating(&BraveWalletJSHandler::Enable,
+                                           base::Unretained(this)));
+  BindFunctionToObject(isolate, javascript_object, "sendAsync",
+                       base::BindRepeating(&BraveWalletJSHandler::SendAsync,
+                                           base::Unretained(this)));
+  BindFunctionToObject(isolate, javascript_object, "send",
+                       base::BindRepeating(&BraveWalletJSHandler::SendAsync,
+                                           base::Unretained(this)));
 }
 
 template <typename Sig>
@@ -167,6 +183,45 @@ void BraveWalletJSHandler::BindFunctionToObject(
                 ->GetFunction(context)
                 .ToLocalChecked())
       .Check();
+}
+
+void BraveWalletJSHandler::SendAsync(gin::Arguments* args) {
+  if (!EnsureConnected())
+    return;
+
+  v8::Isolate* isolate = args->isolate();
+  v8::HandleScope handle_scope(isolate);
+  v8::Local<v8::Value> input;
+  v8::Local<v8::Function> callback;
+  if (!args->GetNext(&input) || !args->GetNext(&callback)) {
+    args->ThrowError();
+    return;
+  }
+  if (!input->IsObject())
+    return;
+
+  std::unique_ptr<base::Value> out(
+      content::V8ValueConverter::Create()->FromV8Value(
+          input, isolate->GetCurrentContext()));
+
+  base::DictionaryValue* out_dict;
+  if (!out || !out->is_dict() || !out->GetAsDictionary(&out_dict))
+    return;
+
+  // Hardcode id to 1 as it is unused
+  ALLOW_UNUSED_LOCAL(out_dict->SetIntPath("id", kRequestId));
+  ALLOW_UNUSED_LOCAL(out_dict->SetStringPath("jsonrpc", kRequestJsonRPC));
+  std::string formed_input;
+  if (!base::JSONWriter::Write(*out_dict, &formed_input))
+    return;
+
+  auto global_callback =
+      std::make_unique<v8::Global<v8::Function>>(isolate, callback);
+
+  brave_wallet_provider_->Request(
+      formed_input,
+      base::BindOnce(&BraveWalletJSHandler::OnSendAsync, base::Unretained(this),
+                     std::move(global_callback)));
 }
 
 v8::Local<v8::Value> BraveWalletJSHandler::IsConnected() {
@@ -243,7 +298,7 @@ void BraveWalletJSHandler::OnRequest(
     message = "HTTP Status code: " + base::NumberToString(http_code);
     formed_response = FormProviderResponse(code, message);
   } else {
-    formed_response = FormProviderResponse(response, &reject);
+    formed_response = FormProviderResponse(response, false, &reject);
   }
   v8::Local<v8::Value> result;
   if (formed_response) {
@@ -256,6 +311,61 @@ void BraveWalletJSHandler::OnRequest(
   } else {
     ALLOW_UNUSED_LOCAL(resolver->Resolve(context, result));
   }
+}
+
+v8::Local<v8::Promise> BraveWalletJSHandler::Enable() {
+  v8::Isolate* isolate = v8::Isolate::GetCurrent();
+  v8::MaybeLocal<v8::Promise::Resolver> resolver =
+      v8::Promise::Resolver::New(isolate->GetCurrentContext());
+  if (resolver.IsEmpty()) {
+    return v8::Local<v8::Promise>();
+  }
+
+  auto promise_resolver(
+      v8::Global<v8::Promise::Resolver>(isolate, resolver.ToLocalChecked()));
+  auto context_old(
+      v8::Global<v8::Context>(isolate, isolate->GetCurrentContext()));
+  brave_wallet_provider_->Enable();
+  return resolver.ToLocalChecked()->GetPromise();
+}
+
+void BraveWalletJSHandler::OnSendAsync(
+    std::unique_ptr<v8::Global<v8::Function>> callback,
+    const int http_code,
+    const std::string& response) {
+  v8::Isolate* isolate = blink::MainThreadIsolate();
+  v8::HandleScope handle_scope(isolate);
+  v8::Local<v8::Context> context =
+      render_frame_->GetWebFrame()->MainWorldScriptContext();
+  v8::Context::Scope context_scope(context);
+  v8::MicrotasksScope microtasks(isolate,
+                                 v8::MicrotasksScope::kDoNotRunMicrotasks);
+  v8::Local<v8::Function> callback_local =
+      v8::Local<v8::Function>::New(isolate, *callback);
+
+  bool reject = http_code != 200;
+  ProviderErrors code = ProviderErrors::kDisconnected;
+  std::string message;
+  std::unique_ptr<base::Value> formed_response;
+  if (reject) {
+    code = ProviderErrors::kUnsupportedMethod;
+    message = "HTTP Status code: " + base::NumberToString(http_code);
+    formed_response = FormProviderResponse(code, message);
+  } else {
+    formed_response = FormProviderResponse(response, true, &reject);
+  }
+  v8::Local<v8::Value> result;
+  if (formed_response) {
+    result = content::V8ValueConverter::Create()->ToV8Value(
+        formed_response.get(), context);
+  }
+
+  v8::Local<v8::Value> result_null = v8::Null(isolate);
+  v8::Local<v8::Value> argv[] = {reject ? result : result_null,
+                                 reject ? result_null : result};
+
+  render_frame_->GetWebFrame()->CallFunctionEvenIfScriptDisabled(
+      callback_local, v8::Object::New(isolate), 2, argv);
 }
 
 void BraveWalletJSHandler::ExecuteScript(const std::string script) {

@@ -41,8 +41,6 @@ net::NetworkTrafficAnnotationTag GetNetworkTrafficAnnotationTag() {
     )");
 }
 
-const unsigned int kRetriesCountOnNetworkChange = 1;
-
 std::string GetInfuraProjectID() {
   std::string project_id(BRAVE_INFURA_PROJECT_ID);
   std::unique_ptr<base::Environment> env(base::Environment::Create());
@@ -67,10 +65,11 @@ namespace brave_wallet {
 EthJsonRpcController::EthJsonRpcController(
     Network network,
     scoped_refptr<network::SharedURLLoaderFactory> url_loader_factory)
-    : network_(network),
-      url_loader_factory_(url_loader_factory),
+    : api_request_helper_(GetNetworkTrafficAnnotationTag(), url_loader_factory),
+      network_(network),
       observers_(new base::ObserverListThreadSafe<
-                 BraveWalletProviderEventsObserver>()) {
+                 BraveWalletProviderEventsObserver>()),
+      weak_ptr_factory_(this) {
   SetNetwork(network);
 }
 
@@ -89,53 +88,9 @@ void EthJsonRpcController::RemoveObserver(
 void EthJsonRpcController::Request(const std::string& json_payload,
                                    URLRequestCallback callback,
                                    bool auto_retry_on_network_change) {
-  auto request = std::make_unique<network::ResourceRequest>();
-  request->url = network_url_;
-  request->load_flags = net::LOAD_BYPASS_CACHE | net::LOAD_DISABLE_CACHE |
-                        net::LOAD_DO_NOT_SAVE_COOKIES;
-  request->credentials_mode = network::mojom::CredentialsMode::kOmit;
-  request->method = "POST";
-
-  auto url_loader = network::SimpleURLLoader::Create(
-      std::move(request), GetNetworkTrafficAnnotationTag());
-  if (!json_payload.empty()) {
-    url_loader->AttachStringForUpload(json_payload, "application/json");
-  }
-  url_loader->SetRetryOptions(
-      kRetriesCountOnNetworkChange,
-      auto_retry_on_network_change
-          ? network::SimpleURLLoader::RetryMode::RETRY_ON_NETWORK_CHANGE
-          : network::SimpleURLLoader::RetryMode::RETRY_NEVER);
-  auto iter = url_loaders_.insert(url_loaders_.begin(), std::move(url_loader));
-  iter->get()->DownloadToStringOfUnboundedSizeUntilCrashAndDie(
-      url_loader_factory_.get(),
-      base::BindOnce(&EthJsonRpcController::OnURLLoaderComplete,
-                     base::Unretained(this), iter, std::move(callback)));
-}
-
-void EthJsonRpcController::OnURLLoaderComplete(
-    SimpleURLLoaderList::iterator iter,
-    URLRequestCallback callback,
-    const std::unique_ptr<std::string> response_body) {
-  auto* loader = iter->get();
-  auto response_code = -1;
-  std::map<std::string, std::string> headers;
-  if (loader->ResponseInfo()) {
-    auto headers_list = loader->ResponseInfo()->headers;
-    if (headers_list) {
-      response_code = headers_list->response_code();
-      size_t iter = 0;
-      std::string key;
-      std::string value;
-      while (headers_list->EnumerateHeaderLines(&iter, &key, &value)) {
-        key = base::ToLowerASCII(key);
-        headers[key] = value;
-      }
-    }
-  }
-  url_loaders_.erase(iter);
-  std::move(callback).Run(response_code, response_body ? *response_body : "",
-                          headers);
+  api_request_helper_.Request("POST", network_url_, json_payload,
+                              "application/json", auto_retry_on_network_change,
+                              std::move(callback));
 }
 
 Network EthJsonRpcController::GetNetwork() const {
@@ -194,7 +149,7 @@ void EthJsonRpcController::GetBalance(
     EthJsonRpcController::GetBallanceCallback callback) {
   auto internal_callback =
       base::BindOnce(&EthJsonRpcController::OnGetBalance,
-                     base::Unretained(this), std::move(callback));
+                     weak_ptr_factory_.GetWeakPtr(), std::move(callback));
   return Request(eth_getBalance(address, "latest"),
                  std::move(internal_callback), true);
 }
@@ -217,13 +172,95 @@ void EthJsonRpcController::OnGetBalance(
   std::move(callback).Run(true, balance);
 }
 
+void EthJsonRpcController::GetTransactionCount(const std::string& address,
+                                               GetTxCountCallback callback) {
+  auto internal_callback =
+      base::BindOnce(&EthJsonRpcController::OnGetTransactionCount,
+                     weak_ptr_factory_.GetWeakPtr(), std::move(callback));
+  return Request(eth_getTransactionCount(address, "latest"),
+                 std::move(internal_callback), true);
+}
+
+void EthJsonRpcController::OnGetTransactionCount(
+    GetTxCountCallback callback,
+    const int status,
+    const std::string& body,
+    const std::map<std::string, std::string>& headers) {
+  if (status < 200 || status > 299) {
+    std::move(callback).Run(false, 0);
+    return;
+  }
+  uint256_t count;
+  if (!ParseEthGetTransactionCount(body, &count)) {
+    std::move(callback).Run(false, 0);
+    return;
+  }
+
+  std::move(callback).Run(true, count);
+}
+
+void EthJsonRpcController::GetTransactionReceipt(
+    const std::string& tx_hash,
+    GetTxReceiptCallback callback) {
+  auto internal_callback =
+      base::BindOnce(&EthJsonRpcController::OnGetTransactionReceipt,
+                     weak_ptr_factory_.GetWeakPtr(), std::move(callback));
+  return Request(eth_getTransactionReceipt(tx_hash),
+                 std::move(internal_callback), true);
+}
+
+void EthJsonRpcController::OnGetTransactionReceipt(
+    GetTxReceiptCallback callback,
+    const int status,
+    const std::string& body,
+    const std::map<std::string, std::string>& headers) {
+  TransactionReceipt receipt;
+  if (status < 200 || status > 299) {
+    std::move(callback).Run(false, receipt);
+    return;
+  }
+  if (!ParseEthGetTransactionReceipt(body, &receipt)) {
+    std::move(callback).Run(false, receipt);
+    return;
+  }
+
+  std::move(callback).Run(true, receipt);
+}
+
+void EthJsonRpcController::SendRawTransaction(const std::string& signed_tx,
+                                              SendRawTxCallback callback) {
+  auto internal_callback =
+      base::BindOnce(&EthJsonRpcController::OnSendRawTransaction,
+                     weak_ptr_factory_.GetWeakPtr(), std::move(callback));
+  return Request(eth_sendRawTransaction(signed_tx),
+                 std::move(internal_callback), true);
+}
+
+void EthJsonRpcController::OnSendRawTransaction(
+    SendRawTxCallback callback,
+    const int status,
+    const std::string& body,
+    const std::map<std::string, std::string>& headers) {
+  if (status < 200 || status > 299) {
+    std::move(callback).Run(false, "");
+    return;
+  }
+  std::string tx_hash;
+  if (!ParseEthSendRawTransaction(body, &tx_hash)) {
+    std::move(callback).Run(false, "");
+    return;
+  }
+
+  std::move(callback).Run(true, tx_hash);
+}
+
 bool EthJsonRpcController::GetERC20TokenBalance(
     const std::string& contract,
     const std::string& address,
     EthJsonRpcController::GetBallanceCallback callback) {
   auto internal_callback =
       base::BindOnce(&EthJsonRpcController::OnGetERC20TokenBalance,
-                     base::Unretained(this), std::move(callback));
+                     weak_ptr_factory_.GetWeakPtr(), std::move(callback));
   std::string data;
   if (!erc20::BalanceOf(address, &data)) {
     return false;
@@ -293,7 +330,7 @@ bool EthJsonRpcController::UnstoppableDomainsProxyReaderGetMany(
     UnstoppableDomainsProxyReaderGetManyCallback callback) {
   auto internal_callback = base::BindOnce(
       &EthJsonRpcController::OnUnstoppableDomainsProxyReaderGetMany,
-      base::Unretained(this), std::move(callback));
+      weak_ptr_factory_.GetWeakPtr(), std::move(callback));
   std::string data;
   if (!unstoppable_domains::GetMany(keys, domain, &data)) {
     return false;

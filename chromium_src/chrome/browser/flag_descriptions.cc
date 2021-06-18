@@ -25,6 +25,11 @@ const char kBraveAdblockCnameUncloakingName[] = "Enable CNAME uncloaking";
 const char kBraveAdblockCnameUncloakingDescription[] =
     "Take DNS CNAME records into account when making network request blocking "
     "decisions.";
+const char kBraveAdblockCollapseBlockedElementsName[] =
+    "Collapse HTML elements with blocked source attributes";
+const char kBraveAdblockCollapseBlockedElementsDescription[] =
+    "Cause iframe and img elements to be collapsed if the URL of their src "
+    "attribute is blocked";
 const char kBraveAdblockCosmeticFilteringName[] = "Enable cosmetic filtering";
 const char kBraveAdblockCosmeticFilteringDescription[] =
     "Enable support for cosmetic filtering";
@@ -73,6 +78,12 @@ const char kNativeBraveWalletName[] = "Enable experimental Brave native wallet";
 const char kNativeBraveWalletDescription[] =
     "Experimental native cryptocurrency wallet support without the use of "
     "extensions";
+const char kBraveSearchDefaultAPIName[] =
+    "Enable Brave Search website default search provider API";
+const char kBraveSearchDefaultAPIDescription[] =
+    "Enable javascript API only on "
+    "Brave Search websites which will allow the user to make the search engine "
+    "their default search provider.";
 const char kBraveDecentralizedDnsName[] = "Enable decentralized DNS";
 const char kBraveDecentralizedDnsDescription[] =
     "Enable decentralized DNS support, such as Unstoppable Domains and "

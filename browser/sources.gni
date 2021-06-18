@@ -108,9 +108,11 @@ brave_chrome_browser_deps = [
   "//brave/common:switches",
   "//brave/components/binance/browser/buildflags",
   "//brave/components/brave_ads/browser/buildflags",
+  "//brave/components/brave_federated_learning",
   "//brave/components/brave_referrals/buildflags",
   "//brave/components/brave_rewards/browser/buildflags",
   "//brave/components/brave_search/browser",
+  "//brave/components/brave_search/common",
   "//brave/components/brave_search/common:mojom",
   "//brave/components/brave_shields/common",
   "//brave/components/brave_sync/buildflags:buildflags",
@@ -195,10 +197,10 @@ if (enable_sparkle) {
 if (brave_wallet_enabled) {
   brave_chrome_browser_deps += [
     "//brave/browser/brave_wallet",
+    "//brave/browser/brave_wallet:brave_wallet_delegate",
     "//brave/components/brave_wallet/browser",
     "//brave/components/brave_wallet/common",
     "//brave/components/brave_wallet/common:mojom",
-    "//brave/components/brave_wallet_ui:mojo_bindings",
   ]
 }
 

@@ -42,9 +42,23 @@ type Props = {
 }
 
 function Container (props: Props) {
+  // Wallet Props
+  const {
+    isWalletCreated,
+    isWalletLocked,
+    isWalletBackedUp,
+    hasIncorrectPassword
+  } = props.wallet
+
+  // Page Props
+  const {
+    showRecoveryPhrase,
+    invalidMnemonic,
+    mnemonic
+  } = props.page
+
   const [view, setView] = React.useState<NavTypes>('crypto')
   const [inputValue, setInputValue] = React.useState<string>('')
-  const [hasPasswordError, setHasPasswordError] = React.useState<boolean>(false)
 
   // In the future these will be actual paths
   // for example wallet/rewards
@@ -52,7 +66,6 @@ function Container (props: Props) {
     setView(path)
   }
 
-  // recoveryVerified Prop will be used in a future PR.
   const completeWalletSetup = (recoveryVerified: boolean) => {
     if (recoveryVerified) {
       props.walletPageActions.walletBackupComplete()
@@ -64,19 +77,17 @@ function Container (props: Props) {
     props.walletPageActions.walletBackupComplete()
   }
 
-  // Need to wire up restore wallet
-  const restoreWallet = (phrase: string, password: string) => {
-    // Logic here to restore wallet and set password
+  const restoreWallet = (mnemonic: string, password: string) => {
+    props.walletPageActions.restoreWallet({ mnemonic, password })
   }
 
   const passwordProvided = (password: string) => {
     props.walletPageActions.createWallet({ password })
   }
 
-  // Need to wire up incorrect password logic
   const unlockWallet = () => {
-    // Logic here to setHassPasswordError if password was incorrect
     props.walletActions.unlockWallet({ password: inputValue })
+    setInputValue('')
   }
 
   const lockWallet = () => {
@@ -93,22 +104,72 @@ function Container (props: Props) {
 
   const handlePasswordChanged = (value: string) => {
     setInputValue(value)
-    setHasPasswordError(false)
+    if (hasIncorrectPassword) {
+      props.walletActions.hasIncorrectPassword(false)
+    }
   }
 
-  const recoveryPhrase = (props.page.mnemonic || '').split(' ')
-  if (!props.wallet.isWalletCreated) {
-    return (
-      <WalletPageLayout>
+  const restorError = React.useMemo(() => {
+    if (invalidMnemonic) {
+      setTimeout(function () { props.walletPageActions.hasMnemonicError(false) }, 5000)
+      return true
+    }
+    return false
+  }, [invalidMnemonic])
+
+  const recoveryPhrase = (mnemonic || '').split(' ')
+
+  const renderWallet = React.useMemo(() => {
+    if (!isWalletCreated) {
+      return (
         <Onboarding
           recoveryPhrase={recoveryPhrase}
           onPasswordProvided={passwordProvided}
           onSubmit={completeWalletSetup}
           onRestore={restoreWallet}
+          hasRestoreError={restorError}
         />
-      </WalletPageLayout>
-    )
-  }
+      )
+    } else {
+      return (
+        <>
+          {isWalletLocked ? (
+            <LockScreen
+              onSubmit={unlockWallet}
+              disabled={inputValue === ''}
+              onPasswordChanged={handlePasswordChanged}
+              hasPasswordError={hasIncorrectPassword}
+            />
+          ) : (
+            <>
+              {showRecoveryPhrase ? (
+                <BackupWallet
+                  isOnboarding={false}
+                  onCancel={onHideBackup}
+                  onSubmit={onBackupWallet}
+                  recoveryPhrase={recoveryPhrase}
+                />
+              ) : (
+                <CryptoView
+                  onLockWallet={lockWallet}
+                  needsBackup={!isWalletBackedUp}
+                  onShowBackup={onShowBackup}
+                />
+              )}
+            </>
+          )}
+        </>
+      )
+    }
+  }, [
+    isWalletCreated,
+    isWalletLocked,
+    recoveryPhrase,
+    isWalletBackedUp,
+    inputValue,
+    hasIncorrectPassword,
+    showRecoveryPhrase
+  ])
 
   return (
     <WalletPageLayout>
@@ -119,33 +180,7 @@ function Container (props: Props) {
       />
       <WalletSubViewLayout>
         {view === 'crypto' ? (
-          <>
-            {props.wallet.isWalletLocked ? (
-              <LockScreen
-                onSubmit={unlockWallet}
-                disabled={inputValue === ''}
-                onPasswordChanged={handlePasswordChanged}
-                hasPasswordError={hasPasswordError}
-              />
-            ) : (
-              <>
-                {props.page.showRecoveryPhrase ? (
-                  <BackupWallet
-                    isOnboarding={false}
-                    onCancel={onHideBackup}
-                    onSubmit={onBackupWallet}
-                    recoveryPhrase={recoveryPhrase}
-                  />
-                ) : (
-                  <CryptoView
-                    onLockWallet={lockWallet}
-                    needsBackup={!props.wallet.isWalletBackedUp}
-                    onShowBackup={onShowBackup}
-                  />
-                )}
-              </>
-            )}
-          </>
+          renderWallet
         ) : (
           <div style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
             <h2>{view} view</h2>
@@ -153,7 +188,9 @@ function Container (props: Props) {
         )}
       </WalletSubViewLayout>
       <WalletWidgetStandIn>
-        <BuySendSwap />
+        {isWalletCreated && !isWalletLocked &&
+          <BuySendSwap />
+        }
       </WalletWidgetStandIn>
     </WalletPageLayout>
   )

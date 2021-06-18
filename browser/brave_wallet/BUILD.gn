@@ -4,6 +4,8 @@ import("//extensions/buildflags/buildflags.gni")
 assert(brave_wallet_enabled)
 
 source_set("brave_wallet") {
+  check_includes = false
+
   sources = [
     "brave_wallet_context_utils.cc",
     "brave_wallet_context_utils.h",
@@ -20,11 +22,41 @@ source_set("brave_wallet") {
     "//extensions/buildflags",
     "//services/network/public/cpp",
   ]
+  if (is_android) {
+    sources += [
+      "./android/brave_wallet_native_worker.cc",
+      "./android/brave_wallet_native_worker.h",
+    ]
+    deps += [ "//brave/build/android:jni_headers" ]
+  }
   if (enable_extensions) {
     deps += [
       "//brave/browser/extensions",
       "//chrome/browser/extensions:extensions",
       "//extensions/browser",
+    ]
+  }
+}
+
+source_set("brave_wallet_delegate") {
+  sources = []
+  deps = [
+    "//brave/components/brave_wallet/browser",
+    "//content/public/browser",
+  ]
+  if (is_android) {
+    sources += [
+      "brave_wallet_provider_delegate_impl_android.cc",
+      "brave_wallet_provider_delegate_impl_android.h",
+    ]
+  } else {
+    sources += [
+      "brave_wallet_provider_delegate_impl.cc",
+      "brave_wallet_provider_delegate_impl.h",
+    ]
+    deps += [
+      "//brave/browser/ui",
+      "//chrome/browser/ui",
     ]
   }
 }

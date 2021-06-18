@@ -23,12 +23,17 @@
 #include "brave/browser/net/brave_proxying_web_socket.h"
 #include "brave/browser/profiles/brave_renderer_updater.h"
 #include "brave/browser/profiles/brave_renderer_updater_factory.h"
+#include "brave/browser/profiles/profile_util.h"
 #include "brave/common/pref_names.h"
 #include "brave/common/webui_url_constants.h"
 #include "brave/components/binance/browser/buildflags/buildflags.h"
 #include "brave/components/brave_rewards/browser/buildflags/buildflags.h"
-#include "brave/components/brave_search/browser/brave_search_host.h"
-#include "brave/components/brave_search/common/brave_search.mojom.h"
+#include "brave/components/brave_search/browser/brave_search_default_host.h"
+#include "brave/components/brave_search/browser/brave_search_default_host_private.h"
+#include "brave/components/brave_search/browser/brave_search_fallback_host.h"
+#include "brave/components/brave_search/common/brave_search_default.mojom.h"
+#include "brave/components/brave_search/common/brave_search_fallback.mojom.h"
+#include "brave/components/brave_search/common/brave_search_utils.h"
 #include "brave/components/brave_shields/browser/brave_shields_util.h"
 #include "brave/components/brave_shields/browser/domain_block_navigation_throttle.h"
 #include "brave/components/brave_shields/common/brave_shield_constants.h"
@@ -49,6 +54,7 @@
 #include "chrome/browser/content_settings/host_content_settings_map_factory.h"
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/profiles/profile_io_data.h"
+#include "chrome/browser/search_engines/template_url_service_factory.h"
 #include "chrome/common/url_constants.h"
 #include "components/content_settings/browser/page_specific_content_settings.h"
 #include "components/content_settings/core/browser/host_content_settings_map.h"
@@ -144,9 +150,11 @@ using extensions::ChromeContentBrowserClientExtensionsPart;
 #include "brave/components/brave_wallet/browser/brave_wallet_utils.h"
 #include "brave/components/brave_wallet/common/brave_wallet.mojom.h"
 #if !defined(OS_ANDROID)
+#include "brave/browser/brave_wallet/brave_wallet_provider_delegate_impl.h"
 #include "brave/browser/ui/webui/brave_wallet/wallet_page_ui.h"
 #include "brave/browser/ui/webui/brave_wallet/wallet_panel_ui.h"
-#include "brave/components/brave_wallet_ui/wallet_ui.mojom.h"
+#else
+#include "brave/browser/brave_wallet/brave_wallet_provider_delegate_impl_android.h"
 #endif
 #endif
 
@@ -207,14 +215,23 @@ void MaybeBindBraveWalletProvider(
       brave_wallet::BraveWalletServiceFactory::GetInstance()->GetForContext(
           context);
 
+  content::WebContents* web_contents =
+      content::WebContents::FromRenderFrameHost(frame_host);
   mojo::MakeSelfOwnedReceiver(
       std::make_unique<brave_wallet::BraveWalletProviderImpl>(
-          service->AsWeakPtr()),
+          service->AsWeakPtr(),
+#if defined(OS_ANDROID)
+          std::make_unique<
+              brave_wallet::BraveWalletProviderDelegateImplAndroid>(
+#else
+          std::make_unique<brave_wallet::BraveWalletProviderDelegateImpl>(
+#endif
+              web_contents)),
       std::move(receiver));
 }
 #endif
 
-void BindBraveSearchHost(
+void BindBraveSearchFallbackHost(
     int process_id,
     mojo::PendingReceiver<brave_search::mojom::BraveSearchFallback> receiver) {
   content::RenderProcessHost* render_process_host =
@@ -224,11 +241,33 @@ void BindBraveSearchHost(
 
   content::BrowserContext* context = render_process_host->GetBrowserContext();
   mojo::MakeSelfOwnedReceiver(
-      std::make_unique<brave_search::BraveSearchHost>(
+      std::make_unique<brave_search::BraveSearchFallbackHost>(
           content::BrowserContext::GetDefaultStoragePartition(context)
               ->GetURLLoaderFactoryForBrowserProcess()),
       std::move(receiver));
 }
+
+void BindBraveSearchDefaultHost(
+    content::RenderFrameHost* const frame_host,
+    mojo::PendingReceiver<brave_search::mojom::BraveSearchDefault> receiver) {
+  auto* context = frame_host->GetBrowserContext();
+  auto* profile = Profile::FromBrowserContext(context);
+  if (brave::IsRegularProfile(profile)) {
+    auto* template_url_service =
+        TemplateURLServiceFactory::GetForProfile(profile);
+    const std::string host = frame_host->GetLastCommittedURL().host();
+    mojo::MakeSelfOwnedReceiver(
+        std::make_unique<brave_search::BraveSearchDefaultHost>(
+            host, template_url_service, profile->GetPrefs()),
+        std::move(receiver));
+  } else {
+    // Dummy API which always returns false for private contexts.
+    mojo::MakeSelfOwnedReceiver(
+        std::make_unique<brave_search::BraveSearchDefaultHostPrivate>(),
+        std::move(receiver));
+  }
+}
+
 }  // namespace
 
 BraveContentBrowserClient::BraveContentBrowserClient()
@@ -287,9 +326,9 @@ void BraveContentBrowserClient::ExposeInterfacesToRenderer(
     content::RenderProcessHost* render_process_host) {
   ChromeContentBrowserClient::ExposeInterfacesToRenderer(
       registry, associated_registry, render_process_host);
-  registry->AddInterface(
-      base::BindRepeating(&BindBraveSearchHost, render_process_host->GetID()),
-      content::GetUIThreadTaskRunner({}));
+  registry->AddInterface(base::BindRepeating(&BindBraveSearchFallbackHost,
+                                             render_process_host->GetID()),
+                         content::GetUIThreadTaskRunner({}));
 }
 
 void BraveContentBrowserClient::RegisterBrowserInterfaceBindersForFrame(
@@ -299,7 +338,10 @@ void BraveContentBrowserClient::RegisterBrowserInterfaceBindersForFrame(
       render_frame_host, map);
   map->Add<cosmetic_filters::mojom::CosmeticFiltersResources>(
       base::BindRepeating(&BindCosmeticFiltersResources));
-
+  if (brave_search::IsDefaultAPIEnabled()) {
+    map->Add<brave_search::mojom::BraveSearchDefault>(
+        base::BindRepeating(&BindBraveSearchDefaultHost));
+  }
 #if BUILDFLAG(BRAVE_WALLET_ENABLED)
   if (brave_wallet::IsNativeWalletEnabled()) {
     map->Add<brave_wallet::mojom::BraveWalletProvider>(
@@ -307,9 +349,9 @@ void BraveContentBrowserClient::RegisterBrowserInterfaceBindersForFrame(
   }
 #if !defined(OS_ANDROID)
   chrome::internal::RegisterWebUIControllerInterfaceBinder<
-      wallet_ui::mojom::PanelHandlerFactory, WalletPanelUI>(map);
+      brave_wallet::mojom::PanelHandlerFactory, WalletPanelUI>(map);
   chrome::internal::RegisterWebUIControllerInterfaceBinder<
-      wallet_ui::mojom::PageHandlerFactory, WalletPageUI>(map);
+      brave_wallet::mojom::PageHandlerFactory, WalletPageUI>(map);
 #endif
 #endif
 }
