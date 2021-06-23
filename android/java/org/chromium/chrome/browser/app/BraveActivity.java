@@ -80,6 +80,8 @@ import org.chromium.chrome.browser.preferences.BravePrefServiceBridge;
 import org.chromium.chrome.browser.preferences.BravePreferenceKeys;
 import org.chromium.chrome.browser.preferences.Pref;
 import org.chromium.chrome.browser.preferences.SharedPreferencesManager;
+import org.chromium.chrome.browser.preferences.website.BraveShieldsContentSettings;
+import org.chromium.chrome.browser.privacy.settings.BravePrivacySettings;
 import org.chromium.chrome.browser.profiles.Profile;
 import org.chromium.chrome.browser.rate.RateDialogFragment;
 import org.chromium.chrome.browser.rate.RateUtils;
@@ -241,6 +243,7 @@ public abstract class BraveActivity<C extends ChromeActivityComponent>
         // Set proper active DSE whenever brave returns to foreground.
         // If active tab is private, set private DSE as an active DSE.
         BraveSearchEngineUtils.updateActiveDSE(tab.isIncognito());
+        BraveStatsUtil.removeShareStatsFile();
     }
 
     @Override
@@ -412,6 +415,25 @@ public abstract class BraveActivity<C extends ChromeActivityComponent>
                     calender.getTimeInMillis());
         }
         checkSetDefaultBrowserModal();
+        checkFingerPrintingOnUpgrade();
+    }
+
+    private void checkFingerPrintingOnUpgrade() {
+        if (!PackageUtils.isFirstInstall(this)
+                && SharedPreferencesManager.getInstance().readInt(
+                           BravePreferenceKeys.BRAVE_APP_OPEN_COUNT)
+                        == 0) {
+            SharedPreferences sharedPreferences = ContextUtils.getAppSharedPreferences();
+            boolean value = sharedPreferences.getBoolean(
+                    BravePrivacySettings.PREF_FINGERPRINTING_PROTECTION, true);
+            if (value) {
+                BravePrefServiceBridge.getInstance().setFingerprintingControlType(
+                        BraveShieldsContentSettings.DEFAULT);
+            } else {
+                BravePrefServiceBridge.getInstance().setFingerprintingControlType(
+                        BraveShieldsContentSettings.ALLOW_RESOURCE);
+            }
+        }
     }
 
     private void openBraveWallet() {
@@ -732,9 +754,6 @@ public abstract class BraveActivity<C extends ChromeActivityComponent>
             if (! TextUtils.isEmpty(open_url)) {
                 openNewOrSelectExistingTab(open_url);
             }
-        } else if (resultCode == RESULT_OK
-                && requestCode == BraveStatsUtil.SHARE_STATS_REQUEST_CODE) {
-            BraveStatsUtil.removeShareStatsFile();
         }
         super.onActivityResult(requestCode, resultCode, data);
     }
