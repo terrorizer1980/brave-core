@@ -98,6 +98,11 @@ export type NotificationType =
   'insufficientFunds' |
   'pendingContribution' |
   'tipsProcessed' |
+  'upholdBATNotAllowedForUser' |
+  'upholdBlockedUser' |
+  'upholdPendingUser' |
+  'upholdRestrictedUser' |
+  'upholdUnverifiedUser' |
   'verifyWallet' |
   ''
 
@@ -275,6 +280,26 @@ export default class WalletWrapper extends React.PureComponent<Props, State> {
         break
       case 'deviceLimitReached':
         buttonText = getLocale('deviceLimitReachedLearnMore')
+        buttonAction = this.onNotificationClick
+        break
+      case 'upholdBATNotAllowedForUser':
+        buttonText = getLocale('upholdBATNotAllowedForUserLearnMore')
+        buttonAction = this.onNotificationClick
+        break
+      case 'upholdBlockedUser':
+        buttonText = getLocale('upholdBlockedUserLearnMore')
+        buttonAction = this.onNotificationClick
+        break
+      case 'upholdPendingUser':
+        buttonText = getLocale('upholdPendingUserLearnMore')
+        buttonAction = this.onNotificationClick
+        break
+      case 'upholdRestrictedUser':
+        buttonText = getLocale('upholdRestrictedUserLearnMore')
+        buttonAction = this.onNotificationClick
+        break
+      case 'upholdUnverifiedUser':
+        buttonText = getLocale('upholdUnverifiedUserLearnMore')
         buttonAction = this.onNotificationClick
         break
       default:
@@ -455,6 +480,11 @@ export default class WalletWrapper extends React.PureComponent<Props, State> {
       case 'backupWallet':
       case 'deviceLimitReached':
       case 'insufficientFunds':
+      case 'upholdBATNotAllowedForUser':
+      case 'upholdBlockedUser':
+      case 'upholdPendingUser':
+      case 'upholdRestrictedUser':
+      case 'upholdUnverifiedUser':
       case 'verifyWallet':
         icon = megaphoneIconUrl
         break
@@ -502,11 +532,26 @@ export default class WalletWrapper extends React.PureComponent<Props, State> {
       case 'insufficientFunds':
         typeText = getLocale('insufficientFunds')
         break
+      case 'pendingContribution':
+        typeText = getLocale('pendingContributionTitle')
+        break
       case 'tipsProcessed':
         typeText = getLocale('contributionTips')
         break
-      case 'pendingContribution':
-        typeText = getLocale('pendingContributionTitle')
+      case 'upholdBATNotAllowedForUser':
+        typeText = getLocale('upholdBATNotAllowedForUserTitle')
+        break
+      case 'upholdBlockedUser':
+        typeText = getLocale('upholdBlockedUserTitle')
+        break
+      case 'upholdPendingUser':
+        typeText = getLocale('upholdPendingUserTitle')
+        break
+      case 'upholdRestrictedUser':
+        typeText = getLocale('upholdRestrictedUserTitle')
+        break
+      case 'upholdUnverifiedUser':
+        typeText = getLocale('upholdUnverifiedUserTitle')
         break
       case 'verifyWallet':
         typeText = getLocale('verifyWalletTitle')
