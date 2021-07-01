@@ -42,6 +42,15 @@ const walletReducer: Reducer<Rewards.State | undefined> = (state: Rewards.State,
       chrome.send('brave_rewards.recoverWallet', [key])
       break
     }
+    case types.ON_EXTERNAL_WALLET_PROVIDER_LIST: {
+      if (!action.payload.list) {
+        break
+      }
+
+      state = { ...state }
+      state.externalWalletProviderList = action.payload.list
+      break
+    }
     case types.ON_RECOVER_WALLET_DATA: {
       state = { ...state }
       const result = action.payload.result
@@ -155,6 +164,13 @@ const walletReducer: Reducer<Rewards.State | undefined> = (state: Rewards.State,
       }
 
       state.externalWallet = action.payload.wallet
+      if (action.payload.openLoginUrl && state.externalWallet !== undefined) {
+        let loginUrl = state.externalWallet.loginUrl
+
+        if (loginUrl !== '') {
+          window.open(loginUrl, '_self')
+        }
+      }
       break
     }
     case types.GET_MONTHLY_REPORT: {
