@@ -31,6 +31,7 @@ void APIRequestHelper::Request(const std::string& method,
                                ResultCallback callback) {
   auto request = std::make_unique<network::ResourceRequest>();
   request->url = url;
+  DLOG(INFO) << "request url:" << url;
   request->load_flags = net::LOAD_BYPASS_CACHE | net::LOAD_DISABLE_CACHE |
                         net::LOAD_DO_NOT_SAVE_COOKIES;
   request->credentials_mode = network::mojom::CredentialsMode::kOmit;

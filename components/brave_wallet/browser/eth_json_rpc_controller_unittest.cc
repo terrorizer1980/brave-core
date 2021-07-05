@@ -15,7 +15,8 @@
 #include "net/test/embedded_test_server/embedded_test_server.h"
 #include "net/test/embedded_test_server/http_request.h"
 #include "net/test/embedded_test_server/http_response.h"
-#include "services/network/test/test_shared_url_loader_factory.h"
+#include "services/network/public/cpp/weak_wrapper_shared_url_loader_factory.h"
+#include "services/network/test/test_url_loader_factory.h"
 #include "testing/gtest/include/gtest/gtest.h"
 #include "url/gurl.h"
 
@@ -26,27 +27,25 @@ class EthJsonRpcControllerUnitTest : public testing::Test {
   EthJsonRpcControllerUnitTest()
       : browser_context_(new content::TestBrowserContext()) {
     shared_url_loader_factory_ =
-        base::MakeRefCounted<network::TestSharedURLLoaderFactory>(
-            nullptr /* network_service */, true /* is_trusted */);
-    test_server_.reset(new net::EmbeddedTestServer(
-        net::test_server::EmbeddedTestServer::TYPE_HTTPS));
-    test_server_->SetSSLConfig(net::EmbeddedTestServer::CERT_OK);
-    test_server_->RegisterRequestHandler(
-        base::BindRepeating(&EthJsonRpcControllerUnitTest::ReturnResponse));
+        base::MakeRefCounted<network::WeakWrapperSharedURLLoaderFactory>(
+            &url_loader_factory_);
+    url_loader_factory_.SetInterceptor(
+        base::BindRepeating(&EthJsonRpcControllerUnitTest::ResourceRequest));
+  
   }
   ~EthJsonRpcControllerUnitTest() override = default;
 
   network::SharedURLLoaderFactory* shared_url_loader_factory() {
-    return shared_url_loader_factory_.get();
+    return url_loader_factory_.GetSafeWeakWrapper().get();
   }
 
   void SetUp() override { ASSERT_TRUE(test_server_->Start()); }
 
   GURL GetServerEndpoint() const { return test_server_->base_url(); }
 
-  static std::unique_ptr<net::test_server::HttpResponse> ReturnResponse(
-      const net::test_server::HttpRequest& request) {
-    auto response = std::make_unique<net::test_server::BasicHttpResponse>();
+  void ResourceRequest(const network::ResourceRequest& request) {
+    response
+    /*auto response = std::make_unique<net::test_server::BasicHttpResponse>();
     response->set_code(net::HTTP_OK);
     response->set_content_type("text/plain");
 
@@ -64,14 +63,21 @@ class EthJsonRpcControllerUnitTest : public testing::Test {
           "0000000000000000000226159d592e2b063810a10ebf6dcbada94ed68b8\"}");
     }
 
-    return response;
+    return response;*/
   }
 
+  void SetResponse() {
+    url_loader_factory_.AddResponse(GetServerEndpoint().spec(),
+                    "{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":\"0x00000"
+          "0000000000000000000226159d592e2b063810a10ebf6dcbada94ed68b8\"}");
+
+  }
   content::TestBrowserContext* context() { return browser_context_.get(); }
 
  private:
   std::unique_ptr<net::EmbeddedTestServer> test_server_;
-  scoped_refptr<network::TestSharedURLLoaderFactory> shared_url_loader_factory_;
+  network::TestURLLoaderFactory url_loader_factory_;
+  scoped_refptr<network::SharedURLLoaderFactory> shared_url_loader_factory_;
   content::BrowserTaskEnvironment task_environment_;
   std::unique_ptr<content::TestBrowserContext> browser_context_;
 };
@@ -126,12 +132,15 @@ TEST_F(EthJsonRpcControllerUnitTest, ResolveENSDomain) {
   EthJsonRpcController controller(Network::kMainnet,
                                   shared_url_loader_factory());
   controller.SetCustomNetwork(GetServerEndpoint());
+  SetResponse();
   base::RunLoop run;
+  DLOG(INFO) << "1";
   controller.EnsProxyReaderGetResolverAddress(
       "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e", "blocktimer.dappstar.eth",
       base::BindOnce(
           [](base::OnceClosure done, bool status, const std::string& result) {
             ASSERT_TRUE(status);
+            DLOG(INFO) << "11";
             EXPECT_EQ(result,
                       "0x000000000000000000000000000000000000000000000000000000"
                       "00000000200000000000000000000000000000000000000000000000"
@@ -141,6 +150,7 @@ TEST_F(EthJsonRpcControllerUnitTest, ResolveENSDomain) {
             std::move(done).Run();
           },
           run.QuitClosure()));
+  DLOG(INFO) << "2";
   run.Run();
 }
 

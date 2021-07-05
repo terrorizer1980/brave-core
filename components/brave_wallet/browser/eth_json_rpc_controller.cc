@@ -297,7 +297,7 @@ bool EthJsonRpcController::EnsProxyReaderGetResolverAddress(
   if (!ens::GetResolverAddress(domain, &data)) {
     return false;
   }
-
+  DLOG(INFO) << "2Request:" << contract_address;
   Request(eth_call("", contract_address, "", "", "", data, "latest"),
           std::move(internal_callback), true);
   return true;
@@ -310,6 +310,7 @@ void EthJsonRpcController::OnEnsProxyReaderGetResolverAddress(
     const std::string& body,
     const std::map<std::string, std::string>& headers) {
   DCHECK(callback);
+  DLOG(INFO) << "OnEnsProxyReaderGetResolverAddress:" << body;
   if (status < 200 || status > 299) {
     std::move(callback).Run(false, "");
     return;
@@ -325,6 +326,7 @@ void EthJsonRpcController::OnEnsProxyReaderGetResolverAddress(
     return;
   }
   std::string contenthash = "0x" + result.substr(offset);
+  DLOG(INFO) << "EnsProxyReaderResolveAddress:" << contenthash;
   EnsProxyReaderResolveAddress(contenthash, domain, std::move(callback));
 }
 
@@ -339,7 +341,7 @@ bool EthJsonRpcController::EnsProxyReaderResolveAddress(
   if (!ens::GetContentHashAddress(domain, &data)) {
     return false;
   }
-
+DLOG(INFO) << "EnsProxyReaderResolveAddress:" << data;
   Request(eth_call("", contract_address, "", "", "", data, "latest"),
           std::move(internal_callback), true);
   return true;
@@ -351,6 +353,7 @@ void EthJsonRpcController::OnEnsProxyReaderResolveAddress(
     const std::string& body,
     const std::map<std::string, std::string>& headers) {
   DCHECK(callback);
+  DLOG(INFO) << "OnEnsProxyReaderResolveAddress:" << body;
   if (status < 200 || status > 299) {
     std::move(callback).Run(false, "");
     return;
