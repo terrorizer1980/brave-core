@@ -181,6 +181,7 @@ class AdsImpl : public Ads,
   void RemoveAllHistory(RemoveAllHistoryCallback callback) override;
 
   void ReconcileAdRewards() override;
+  void ReconcileAdRewardsTest() override;
 
   AdsHistoryInfo GetAdsHistory(const AdsHistoryInfo::FilterType filter_type,
                                const AdsHistoryInfo::SortType sort_type,

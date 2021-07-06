@@ -198,6 +198,7 @@ class ADS_EXPORT Ads {
   // Should be called to reconcile ad rewards with the server, i.e. after an
   // ad grant is claimed
   virtual void ReconcileAdRewards() = 0;
+  virtual void ReconcileAdRewardsTest() = 0;
 
   // Should be called to get ads history for a specified date range. Returns
   // |AdsHistoryInfo|

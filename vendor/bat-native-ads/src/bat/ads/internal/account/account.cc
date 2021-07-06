@@ -104,6 +104,10 @@ void Account::Reconcile() {
   ad_rewards_->MaybeReconcile(wallet);
 }
 
+void Account::ReconcileTest() {
+  OnDidRedeemUnblindedPaymentTokens();
+}
+
 void Account::ProcessTransactions() {
   if (!ShouldRewardUser()) {
     return;

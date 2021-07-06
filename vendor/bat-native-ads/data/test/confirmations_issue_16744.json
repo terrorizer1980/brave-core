@@ -135,8 +135,58 @@
     "transactions": [
       {
         "confirmation_type": "view",
-        "estimated_redemption_value": 0.01,
-        "timestamp_in_seconds": "1625096431"
+        "estimated_redemption_value": 0.05,
+        "timestamp_in_seconds": "1525142000"
+      },
+      {
+        "confirmation_type": "view",
+        "estimated_redemption_value": 0.05,
+        "timestamp_in_seconds": "1625142000"
+      },
+      {
+        "confirmation_type": "view",
+        "estimated_redemption_value": 0.05,
+        "timestamp_in_seconds": "1625142001"
+      },
+      {
+        "confirmation_type": "view",
+        "estimated_redemption_value": 0.05,
+        "timestamp_in_seconds": "1625142002"
+      },
+      {
+        "confirmation_type": "view",
+        "estimated_redemption_value": 0.05,
+        "timestamp_in_seconds": "1625142003"
+      },
+      {
+        "confirmation_type": "view",
+        "estimated_redemption_value": 0.05,
+        "timestamp_in_seconds": "1625142004"
+      },
+      {
+        "confirmation_type": "view",
+        "estimated_redemption_value": 0.05,
+        "timestamp_in_seconds": "1625142005"
+      },
+      {
+        "confirmation_type": "view",
+        "estimated_redemption_value": 0.05,
+        "timestamp_in_seconds": "1625142006"
+      },
+      {
+        "confirmation_type": "view",
+        "estimated_redemption_value": 0.05,
+        "timestamp_in_seconds": "1625142007"
+      },
+      {
+        "confirmation_type": "view",
+        "estimated_redemption_value": 0.05,
+        "timestamp_in_seconds": "1625142008"
+      },
+      {
+        "confirmation_type": "view",
+        "estimated_redemption_value": 0.05,
+        "timestamp_in_seconds": "1625142009"
       },
       {
         "confirmation_type": "view",
@@ -157,6 +207,16 @@
         "confirmation_type": "view",
         "estimated_redemption_value": 0.01,
         "timestamp_in_seconds": "1625143649"
+      },
+      {
+        "confirmation_type": "view",
+        "estimated_redemption_value": 0.005,
+        "timestamp_in_seconds": "1625531769"
+      },
+      {
+        "confirmation_type": "click",
+        "estimated_redemption_value": 0,
+        "timestamp_in_seconds": "1625531770"
       }
     ]
   },
@@ -176,6 +236,14 @@
     {
       "public_key": "oOJO/xLaCXGW6yhpeIfM4K1X2ln7sgdjTCTCHe8BugE=",
       "unblinded_token": "hlwvI/EELm+pEJt/KCL698hhg4iQpOygzbdIUk6num1+SLNFvkQsMlH1qfu5N3CkVG+U18o/SbINieAr2ghzopTVIP4C3ZgTx5WQKjq7Czmz7J0hTmsKDShayU2JGF1I"
+    },
+    {
+      "public_key": "QNtxqL+tAbSoISEAr0oSWwzUliccLDv2KoZWXeXeHiU=",
+      "unblinded_token": "ISmAprwwSxPE7loEghNcQmDRhmSJry9j/jS6GE3HUZ3mr1FX4w+DuzVf8y1XWqSToemJkkMiAjtmoo3sosKDyOy1oqzKMZrNPuydi3B8o6BtLi62Xe3OK+7tFyDUlnwY"
+    },
+    {
+      "public_key": "uor3AzFj4OmdCxwetsYD1TxPXZSw40t3j/VOCUyC7Rs=",
+      "unblinded_token": "4nTY+ZoyQYeFecs73f//oj32r7IRsb8d1M0qIeqp458Au7O1oX2qlRTlGN3U1MxMAOhijOhDQ52Psfz/Lq24Fhy4cVCIAV8Ar6t4avGc7Dx/Y1Hr5RbcW2YKWQkzEL93"
     }
   ],
   "unblinded_tokens": []

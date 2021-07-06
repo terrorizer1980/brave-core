@@ -54,6 +54,7 @@ class Account : public AdRewardsDelegate,
                              const int64_t to_timestamp) const;
 
   void Reconcile();
+  void ReconcileTest();
 
   void ProcessTransactions();
 

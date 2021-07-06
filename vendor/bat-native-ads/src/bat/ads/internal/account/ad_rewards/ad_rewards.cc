@@ -7,6 +7,7 @@
 
 #include <functional>
 #include <utility>
+#include <iostream>
 
 #include "base/time/time.h"
 #include "bat/ads/internal/account/ad_rewards/ad_grants/ad_grants.h"
@@ -229,14 +230,17 @@ bool AdRewards::DidReconcile(
 
   Payments payments;
   if (!payments.SetFromJson(json)) {
+    std::cout << "FOOBAR.1" << std::endl;
     return false;
   }
 
   if (!payments.DidReconcileBalance(last_balance,
       unreconciled_estimated_pending_rewards_)) {
+    std::cout << "FOOBAR.2" << std::endl;
     return false;
   }
 
+  std::cout << "FOOBAR.3" << std::endl;
   return true;
 }
 
@@ -277,17 +281,21 @@ void AdRewards::OnGetPayments(const UrlResponse& url_response) {
   }
 
   if (!DidReconcile(url_response.body)) {
+    std::cout << "FOOBAR.4" << std::endl;
     BLOG(0, "Payment balance is not ready");
     OnFailedToReconcileAdRewards();
     return;
   }
 
   if (!payments_->SetFromJson(url_response.body)) {
+    std::cout << "FOOBAR.5" << std::endl;
     BLOG(0, "Failed to parse payment balance");
     BLOG(6, "Payment balance response body: " << url_response.body);
     OnFailedToReconcileAdRewards();
     return;
   }
+
+  std::cout << "FOOBAR.6" << std::endl;
 
   unreconciled_estimated_pending_rewards_ = 0.0;
   ConfirmationsState::Get()->Save();

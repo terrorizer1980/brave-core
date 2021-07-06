@@ -6,6 +6,7 @@
 #include "bat/ads/internal/account/ad_rewards/payments/payments.h"
 
 #include <utility>
+#include <iostream>
 
 #include "base/json/json_reader.h"
 #include "base/strings/string_number_conversions.h"
@@ -122,7 +123,13 @@ bool Payments::DidReconcileBalance(
     return true;
   }
 
+  std::cout << "FOOBAR.GetBalance: " << GetBalance() << std::endl;
+  std::cout << "FOOBAR.last_balance: " << last_balance << std::endl;
+
   const double delta = GetBalance() - last_balance;
+  std::cout << "FOOBAR.delta: " << delta << std::endl;
+  std::cout << "FOOBAR.unreconciled_estimated_pending_rewards: " << unreconciled_estimated_pending_rewards << std::endl;
+
   if (DoubleIsGreaterEqual(delta, unreconciled_estimated_pending_rewards)) {
     return true;
   }

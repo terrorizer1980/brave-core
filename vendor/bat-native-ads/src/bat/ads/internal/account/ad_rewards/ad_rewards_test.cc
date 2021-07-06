@@ -5,6 +5,10 @@
 
 #include "bat/ads/internal/account/ad_rewards/ad_rewards.h"
 
+#include "bat/ads/internal/account/confirmations/confirmations_state.h"
+#include "bat/ads/internal/account/transactions/transactions.h"
+#include "bat/ads/internal/number_util.h"
+#include "bat/ads/internal/privacy/unblinded_tokens/unblinded_tokens.h"
 #include "bat/ads/internal/unittest_base.h"
 #include "bat/ads/internal/unittest_util.h"
 #include "net/http/http_status_code.h"
@@ -438,10 +442,149 @@ TEST_F(
                 "transactionCount": "253",
                 "balance": "12.65"
               }
+            ])"},
+            {net::HTTP_OK,
+         R"([
+              {
+                "month": "2021-07",
+                "transactionCount": "15",
+                "balance": "0.135"
+              },
+              {
+                "month": "2021-06",
+                "transactionCount": "234",
+                "balance": "1.9475"
+              },
+              {
+                "month": "2021-05",
+                "transactionCount": "170",
+                "balance": "1.0385"
+              },
+              {
+                "month": "2021-04",
+                "transactionCount": "290",
+                "balance": "2.8025"
+              },
+              {
+                "month": "2021-03",
+                "transactionCount": "342",
+                "balance": "4.25"
+              },
+              {
+                "month": "2021-02",
+                "transactionCount": "420",
+                "balance": "6.73"
+              },
+              {
+                "month": "2021-01",
+                "transactionCount": "432",
+                "balance": "5.775"
+              },
+              {
+                "month": "2020-12",
+                "transactionCount": "180",
+                "balance": "5.475"
+              },
+              {
+                "month": "2020-11",
+                "transactionCount": "151",
+                "balance": "5.405"
+              },
+              {
+                "month": "2020-10",
+                "transactionCount": "33",
+                "balance": "0.825"
+              },
+              {
+                "month": "2020-09",
+                "transactionCount": "80",
+                "balance": "1.625"
+              },
+              {
+                "month": "2020-08",
+                "transactionCount": "156",
+                "balance": "6.45"
+              },
+              {
+                "month": "2020-07",
+                "transactionCount": "241",
+                "balance": "12.2"
+              },
+              {
+                "month": "2020-06",
+                "transactionCount": "242",
+                "balance": "11.79"
+              },
+              {
+                "month": "2020-05",
+                "transactionCount": "238",
+                "balance": "12.45"
+              },
+              {
+                "month": "2020-04",
+                "transactionCount": "293",
+                "balance": "15.55"
+              },
+              {
+                "month": "2020-03",
+                "transactionCount": "284",
+                "balance": "15.05"
+              },
+              {
+                "month": "2020-02",
+                "transactionCount": "149",
+                "balance": "7.65"
+              },
+              {
+                "month": "2020-01",
+                "transactionCount": "65",
+                "balance": "3.45"
+              },
+              {
+                "month": "2019-12",
+                "transactionCount": "110",
+                "balance": "5.5"
+              },
+              {
+                "month": "2019-11",
+                "transactionCount": "42",
+                "balance": "2.1"
+              },
+              {
+                "month": "2019-10",
+                "transactionCount": "124",
+                "balance": "6.2"
+              },
+              {
+                "month": "2019-09",
+                "transactionCount": "115",
+                "balance": "7.25"
+              },
+              {
+                "month": "2019-08",
+                "transactionCount": "225",
+                "balance": "13.65"
+              },
+              {
+                "month": "2019-07",
+                "transactionCount": "114",
+                "balance": "6.1"
+              },
+              {
+                "month": "2019-06",
+                "transactionCount": "253",
+                "balance": "12.65"
+              }
             ])"}}},
       {"/v1/promotions/ads/grants/"
        "summary?paymentId=c387c2d8-a26d-4451-83e4-5c0c6fd942be",
        {{net::HTTP_OK,
+         R"({
+              "type" : "ads",
+              "amount" : "169.68",
+              "lastClaim" : "2021-05-06T20:55:56Z"
+            })"},
+            {net::HTTP_OK,
          R"({
               "type" : "ads",
               "amount" : "169.68",
@@ -455,89 +598,170 @@ TEST_F(
 
   InitializeAds();
 
-  AdvanceClock(TimeFromDateString("4 July 2021"));
+  AdvanceClock(TimeFromDateString("6 July 2021"));
+
+  StatementInfo expected_statement;
+  expected_statement.next_payment_date =
+      TimestampFromDateString("5 August 2021");
+
+  // Calculated by subtracting the ad grant balance from the accumulated
+  // payment balances
+  expected_statement.estimated_pending_rewards = 4.3185;
+
+  // Calculated from the above payment balance for June
+  expected_statement.earnings_this_month = 0.085;
+
+  // Calculated from the above payment balance for May
+  expected_statement.earnings_last_month = 1.9475;
+
+  // Calculated from ads received during July
+  expected_statement.ads_received_this_month = 14;
+
+  // Transactions
+  TransactionInfo legacy_transaction;
+  legacy_transaction.timestamp = 1525142000;
+  legacy_transaction.estimated_redemption_value = 0.05;
+  legacy_transaction.confirmation_type = "view";
+  expected_statement.transactions.push_back(legacy_transaction);
+  for (int i = 0; i < 10; i++) {
+    legacy_transaction.timestamp = 1625142000 + i;
+    legacy_transaction.estimated_redemption_value = 0.05;
+    legacy_transaction.confirmation_type = "view";
+    expected_statement.transactions.push_back(legacy_transaction);
+  }
+
+  TransactionInfo transaction_1;  //  July 1, 2021 12:33:32 PM
+  transaction_1.timestamp = 1625142812;
+  transaction_1.estimated_redemption_value = 0.01;
+  transaction_1.confirmation_type = "view";
+  expected_statement.transactions.push_back(transaction_1);
+
+  TransactionInfo transaction_2;  //  July 1, 2021 12:33:33 PM
+  transaction_2.timestamp = 1625142813;
+  transaction_2.estimated_redemption_value = 0.0;
+  transaction_2.confirmation_type = "dismiss";
+  expected_statement.transactions.push_back(transaction_2);
+
+  TransactionInfo transaction_3;  //  July 1, 2021 12:34:21 PM
+  transaction_3.timestamp = 1625142861;
+  transaction_3.estimated_redemption_value = 0.01;
+  transaction_3.confirmation_type = "view";
+  expected_statement.transactions.push_back(transaction_3);
+
+  TransactionInfo transaction_4;  // July 1, 2021 12:47:29 PM
+  transaction_4.timestamp = 1625143649;
+  transaction_4.estimated_redemption_value = 0.01;
+  transaction_4.confirmation_type = "view";
+  expected_statement.transactions.push_back(transaction_4);
+
+  TransactionInfo transaction_5;  // July 6, 2021 00:36:09 AM
+  transaction_5.timestamp = 1625531769;
+  transaction_5.estimated_redemption_value = 0.005;
+  transaction_5.confirmation_type = "view";
+  expected_statement.transactions.push_back(transaction_5);
+
+  TransactionInfo transaction_6;  // July 6, 2021 00:36:10 AM
+  transaction_6.timestamp = 1625531770;
+  transaction_6.estimated_redemption_value = 0.0;
+  transaction_6.confirmation_type = "click";
+  expected_statement.transactions.push_back(transaction_6);
+
+  // Uncleared transactions
+  TransactionInfo uncleared_transaction_1;  // July 1, 2021 12:33:32 PM
+  uncleared_transaction_1.timestamp = 1625142812;
+  uncleared_transaction_1.estimated_redemption_value = 0.01;
+  uncleared_transaction_1.confirmation_type = "view";
+  expected_statement.uncleared_transactions.push_back(
+      uncleared_transaction_1);
+
+  TransactionInfo uncleared_transaction_2;  // July 1, 2021 12:33:33 PM
+  uncleared_transaction_2.timestamp = 1625142813;
+  uncleared_transaction_2.estimated_redemption_value = 0.0;
+  uncleared_transaction_2.confirmation_type = "dismiss";
+  expected_statement.uncleared_transactions.push_back(
+      uncleared_transaction_2);
+
+  TransactionInfo uncleared_transaction_3;  // July 1, 2021 12:34:21 PM
+  uncleared_transaction_3.timestamp = 1625142861;
+  uncleared_transaction_3.estimated_redemption_value = 0.01;
+  uncleared_transaction_3.confirmation_type = "view";
+  expected_statement.uncleared_transactions.push_back(
+      uncleared_transaction_3);
+
+  TransactionInfo uncleared_transaction_4;  // July 1, 2021 12:47:29 PM
+  uncleared_transaction_4.timestamp = 1625143649;
+  uncleared_transaction_4.estimated_redemption_value = 0.01;
+  uncleared_transaction_4.confirmation_type = "view";
+  expected_statement.uncleared_transactions.push_back(
+      uncleared_transaction_4);
+
+  TransactionInfo uncleared_transaction_5;  // July 6, 2021 00:36:09 AM
+  uncleared_transaction_5.timestamp = 1625531769;
+  uncleared_transaction_5.estimated_redemption_value = 0.005;
+  uncleared_transaction_5.confirmation_type = "view";
+  expected_statement.uncleared_transactions.push_back(
+      uncleared_transaction_5);
+
+  TransactionInfo uncleared_transaction_6;  // July 6, 2021 00:36:09 AM
+  uncleared_transaction_6.timestamp = 1625531770;
+  uncleared_transaction_6.estimated_redemption_value = 0.0;
+  uncleared_transaction_6.confirmation_type = "click";
+  expected_statement.uncleared_transactions.push_back(
+      uncleared_transaction_6);
 
   // Act
   GetAds()->GetAccountStatement(
-      [](const bool success, const StatementInfo& statement) {
+      [&expected_statement](const bool success,
+                            const StatementInfo& statement) {
         ASSERT_TRUE(success);
 
-        StatementInfo expected_statement;
-        expected_statement.next_payment_date =
-            TimestampFromDateString("5 July 2021");
+        EXPECT_EQ(expected_statement, statement);
+      });
 
-        // Calculated by subtracting the ad grant balance from the accumulated
-        // payment balances
-        expected_statement.estimated_pending_rewards = 4.3135;
+  // Add new transaction
+  AdvanceClock(base::TimeDelta::FromMinutes(6));
 
-        // Calculated from the above payment balance for June
-        expected_statement.earnings_this_month = 0.08;
+  privacy::UnblindedTokenInfo unblinded_payment_token;
+  unblinded_payment_token.value =
+      challenge_bypass_ristretto::UnblindedToken::decode_base64(
+          "sBHEriHjOcSJBLi65AuZwqvPm7U+kgloDIZZrJ1G6t7l3Q0nSvag+EXj4xc+ObeL6xou0XCryeJSusoZrLZuXUguYj9trXz/q/WS+OXxehg91iXvOToywZOYTBnSCR1t");  // NOLINT
+  unblinded_payment_token.public_key =
+      challenge_bypass_ristretto::PublicKey::decode_base64(
+          "mmXlFlskcF+LjQmJTPQUmoDMV8Co2r+0eNqSyzCywmk=");
+  ConfirmationsState::Get()->get_unblinded_payment_tokens()->AddTokens(
+      {unblinded_payment_token});
+  ConfirmationsState::Get()->Save();
 
-        // Calculated from the above payment balance for May
-        expected_statement.earnings_last_month = 1.9475;
+  ConfirmationInfo confirmation;
+  confirmation.type = ConfirmationType::kViewed;
+  transactions::Add(0.05, confirmation);
 
-        // Calculated from ads received during July
-        expected_statement.ads_received_this_month = 3;
+  GetAds()->ReconcileAdRewardsTest();
 
-        // Transactions
-        TransactionInfo transaction_1;  // June 30, 2021 11:40:31 PM
-        transaction_1.timestamp = 1625096431;
-        transaction_1.estimated_redemption_value = 0.01;
-        transaction_1.confirmation_type = "view";
-        expected_statement.transactions.push_back(transaction_1);
+  // Calculated by subtracting the ad grant balance from the accumulated
+  // payment balances
+  expected_statement.estimated_pending_rewards = 4.3685;
 
-        TransactionInfo transaction_2;  //  July 1, 2021 12:33:32 PM
-        transaction_2.timestamp = 1625142812;
-        transaction_2.estimated_redemption_value = 0.01;
-        transaction_2.confirmation_type = "view";
-        expected_statement.transactions.push_back(transaction_2);
+  // Calculated from the above payment balance for June
+  expected_statement.earnings_this_month = 0.135;
 
-        TransactionInfo transaction_3;  //  July 1, 2021 12:33:33 PM
-        transaction_3.timestamp = 1625142813;
-        transaction_3.estimated_redemption_value = 0.0;
-        transaction_3.confirmation_type = "dismiss";
-        expected_statement.transactions.push_back(transaction_3);
+  // Calculated from ads received during July
+  expected_statement.ads_received_this_month = 15;
 
-        TransactionInfo transaction_4;  //  July 1, 2021 12:34:21 PM
-        transaction_4.timestamp = 1625142861;
-        transaction_4.estimated_redemption_value = 0.01;
-        transaction_4.confirmation_type = "view";
-        expected_statement.transactions.push_back(transaction_4);
+  // Transactions
+  TransactionInfo transaction_7;  // Now
+  transaction_7.timestamp = static_cast<int64_t>(base::Time::Now().ToDoubleT());
+  transaction_7.estimated_redemption_value = 0.05;
+  transaction_7.confirmation_type = "view";
+  expected_statement.transactions.push_back(transaction_7);
 
-        TransactionInfo transaction_5;  // July 1, 2021 12:47:29 PM
-        transaction_5.timestamp = 1625143649;
-        transaction_5.estimated_redemption_value = 0.01;
-        transaction_5.confirmation_type = "view";
-        expected_statement.transactions.push_back(transaction_5);
+  // Uncleared transactions
+  expected_statement.uncleared_transactions = {};
 
-        // Uncleared transactions
-        TransactionInfo uncleared_transaction_1;  // July 1, 2021 12:33:32 PM
-        uncleared_transaction_1.timestamp = 1625142812;
-        uncleared_transaction_1.estimated_redemption_value = 0.01;
-        uncleared_transaction_1.confirmation_type = "view";
-        expected_statement.uncleared_transactions.push_back(
-            uncleared_transaction_1);
-
-        TransactionInfo uncleared_transaction_2;  // July 1, 2021 12:33:33 PM
-        uncleared_transaction_2.timestamp = 1625142813;
-        uncleared_transaction_2.estimated_redemption_value = 0.0;
-        uncleared_transaction_2.confirmation_type = "dismiss";
-        expected_statement.uncleared_transactions.push_back(
-            uncleared_transaction_2);
-
-        TransactionInfo uncleared_transaction_3;  // July 1, 2021 12:34:21 PM
-        uncleared_transaction_3.timestamp = 1625142861;
-        uncleared_transaction_3.estimated_redemption_value = 0.01;
-        uncleared_transaction_3.confirmation_type = "view";
-        expected_statement.uncleared_transactions.push_back(
-            uncleared_transaction_3);
-
-        TransactionInfo uncleared_transaction_4;  // July 1, 2021 12:47:29 PM
-        uncleared_transaction_4.timestamp = 1625143649;
-        uncleared_transaction_4.estimated_redemption_value = 0.01;
-        uncleared_transaction_4.confirmation_type = "view";
-        expected_statement.uncleared_transactions.push_back(
-            uncleared_transaction_4);
+  GetAds()->GetAccountStatement(
+      [&expected_statement](const bool success,
+                            const StatementInfo& statement) {
+        ASSERT_TRUE(success);
 
         EXPECT_EQ(expected_statement, statement);
       });

@@ -379,6 +379,14 @@ void AdsImpl::ReconcileAdRewards() {
   account_->Reconcile();
 }
 
+void AdsImpl::ReconcileAdRewardsTest() {
+  if (!IsInitialized()) {
+    return;
+  }
+
+  account_->ReconcileTest();
+}
+
 AdsHistoryInfo AdsImpl::GetAdsHistory(
     const AdsHistoryInfo::FilterType filter_type,
     const AdsHistoryInfo::SortType sort_type,
