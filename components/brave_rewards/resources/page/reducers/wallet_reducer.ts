@@ -164,13 +164,6 @@ const walletReducer: Reducer<Rewards.State | undefined> = (state: Rewards.State,
       }
 
       state.externalWallet = action.payload.wallet
-      if (action.payload.openLoginUrl && state.externalWallet !== undefined) {
-        let loginUrl = state.externalWallet.loginUrl
-
-        if (loginUrl !== '') {
-          window.open(loginUrl, '_self')
-        }
-      }
       break
     }
     case types.GET_MONTHLY_REPORT: {

@@ -33,7 +33,6 @@
 #include "brave/components/l10n/common/locale_util.h"
 #include "chrome/browser/profiles/profile.h"
 #include "components/prefs/pref_service.h"
-#include "components/prefs/pref_change_registrar.h"
 #include "content/public/browser/render_view_host.h"
 #include "content/public/browser/web_contents.h"
 #include "content/public/browser/web_ui_data_source.h"
@@ -150,10 +149,8 @@ class RewardsDOMHandler : public WebUIMessageHandler,
     const ledger::type::Result result,
     ledger::type::BalancePtr balance);
 
-  void GetExternalWallet(const bool open_login_url,
-                         const base::ListValue* args);
-  void OnGetExternalWallet(const bool open_login_url,
-                           const ledger::type::Result result,
+  void GetExternalWallet(const base::ListValue* args);
+  void OnGetExternalWallet(const ledger::type::Result result,
                            ledger::type::ExternalWalletPtr wallet);
 
   void ProcessRewardsPageUrl(const base::ListValue* args);
@@ -204,6 +201,9 @@ class RewardsDOMHandler : public WebUIMessageHandler,
   void SaveOnboardingResult(const base::ListValue* args);
   void GetExternalWalletProviders(const base::ListValue* args);
   void SetExternalWalletType(const base::ListValue* args);
+
+  void OnExternalWalletTypeUpdated(const ledger::type::Result result,
+                                   ledger::type::ExternalWalletPtr wallet);
 
   // RewardsServiceObserver implementation
   void OnRewardsInitialized(
@@ -306,7 +306,6 @@ class RewardsDOMHandler : public WebUIMessageHandler,
 
   brave_rewards::RewardsService* rewards_service_;  // NOT OWNED
   brave_ads::AdsService* ads_service_;  // NOT OWNED
-  PrefChangeRegistrar pref_change_registrar_;
   base::WeakPtrFactory<RewardsDOMHandler> weak_factory_;
 
   DISALLOW_COPY_AND_ASSIGN(RewardsDOMHandler);
@@ -454,7 +453,7 @@ void RewardsDOMHandler::RegisterMessages() {
   web_ui()->RegisterMessageCallback(
       "brave_rewards.getExternalWallet",
       base::BindRepeating(&RewardsDOMHandler::GetExternalWallet,
-                          base::Unretained(this), false));
+                          base::Unretained(this)));
   web_ui()->RegisterMessageCallback("brave_rewards.processRewardsPageUrl",
       base::BindRepeating(&RewardsDOMHandler::ProcessRewardsPageUrl,
       base::Unretained(this)));
@@ -517,7 +516,6 @@ void RewardsDOMHandler::IsInitialized(const base::ListValue* args) {
 }
 
 void RewardsDOMHandler::OnJavascriptAllowed() {
-  Profile* profile = Profile::FromWebUI(web_ui());
   if (rewards_service_) {
     rewards_service_->AddObserver(this);
   }
@@ -525,12 +523,6 @@ void RewardsDOMHandler::OnJavascriptAllowed() {
   if (ads_service_) {
     ads_service_->AddObserver(this);
   }
-
-  pref_change_registrar_.Init(profile->GetPrefs());
-  pref_change_registrar_.Add(
-      brave_rewards::prefs::kExternalWalletType,
-      base::BindRepeating(&RewardsDOMHandler::GetExternalWallet,
-                          weak_factory_.GetWeakPtr(), true, nullptr));
 }
 
 void RewardsDOMHandler::OnJavascriptDisallowed() {
@@ -542,7 +534,6 @@ void RewardsDOMHandler::OnJavascriptDisallowed() {
     ads_service_->RemoveObserver(this);
   }
 
-  pref_change_registrar_.RemoveAll();
   weak_factory_.InvalidateWeakPtrs();
 }
 
@@ -605,6 +596,19 @@ void RewardsDOMHandler::SetExternalWalletType(const base::ListValue* args) {
   AllowJavascript();
   const std::string wallet_type = args->GetList()[0].GetString();
   rewards_service_->SetExternalWalletType(wallet_type);
+
+  rewards_service_->GetExternalWallet(
+      base::BindOnce(&RewardsDOMHandler::OnExternalWalletTypeUpdated,
+                     weak_factory_.GetWeakPtr()));
+}
+
+void RewardsDOMHandler::OnExternalWalletTypeUpdated(
+    const ledger::type::Result result,
+    ledger::type::ExternalWalletPtr wallet) {
+  if (IsJavascriptAllowed()) {
+    CallJavascriptFunction("brave_rewards.externalWalletLogin",
+                           base::Value(wallet->login_url));
+  }
 }
 
 void RewardsDOMHandler::OnGetAutoContributeProperties(
@@ -1630,20 +1634,17 @@ void RewardsDOMHandler::FetchBalance(const base::ListValue* args) {
   }
 }
 
-void RewardsDOMHandler::GetExternalWallet(const bool open_login_url,
-                                          const base::ListValue* args) {
+void RewardsDOMHandler::GetExternalWallet(const base::ListValue* args) {
   if (!rewards_service_) {
     return;
   }
 
   AllowJavascript();
-  rewards_service_->GetExternalWallet(
-      base::BindOnce(&RewardsDOMHandler::OnGetExternalWallet,
-                     weak_factory_.GetWeakPtr(), open_login_url));
+  rewards_service_->GetExternalWallet(base::BindOnce(
+      &RewardsDOMHandler::OnGetExternalWallet, weak_factory_.GetWeakPtr()));
 }
 
 void RewardsDOMHandler::OnGetExternalWallet(
-    const bool open_login_url,
     const ledger::type::Result result,
     ledger::type::ExternalWalletPtr wallet) {
   if (IsJavascriptAllowed()) {
@@ -1664,7 +1665,6 @@ void RewardsDOMHandler::OnGetExternalWallet(
     }
 
     data.SetKey("wallet", std::move(wallet_dict));
-    data.SetBoolKey("openLoginUrl", open_login_url);
     CallJavascriptFunction("brave_rewards.externalWallet", data);
   }
 }

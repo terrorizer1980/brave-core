@@ -3456,28 +3456,34 @@ bool RewardsServiceImpl::IsBitFlyerRegion() const {
   return false;
 }
 
+bool RewardsServiceImpl::IsValidWalletType(
+    const std::string& wallet_type) const {
+  for (auto& provider : GetExternalWalletProviders()) {
+    if (wallet_type == provider)
+      return true;
+  }
+  return false;
+}
+
 std::string RewardsServiceImpl::GetExternalWalletType() const {
   if (IsBitFlyerRegion()) {
     return ledger::constant::kWalletBitflyer;
   }
-#if BUILDFLAG(ENABLE_GEMINI_WALLET)
-  if (base::FeatureList::IsEnabled(features::kGeminiFeature)) {
-    return profile_->GetPrefs()->GetString(prefs::kExternalWalletType);
+
+  const std::string type =
+      profile_->GetPrefs()->GetString(prefs::kExternalWalletType);
+
+  if (IsValidWalletType(type)) {
+    return type;
   }
-#endif
 
   return ledger::constant::kWalletUphold;
 }
 
 void RewardsServiceImpl::SetExternalWalletType(const std::string& wallet_type) {
-#if BUILDFLAG(ENABLE_GEMINI_WALLET)
-  const std::vector<std::string> providers = GetExternalWalletProviders();
-  if (base::FeatureList::IsEnabled(features::kGeminiFeature) &&
-      std::find(providers.begin(), providers.end(), wallet_type) !=
-          providers.end()) {
+  if (IsValidWalletType(wallet_type)) {
     profile_->GetPrefs()->SetString(prefs::kExternalWalletType, wallet_type);
   }
-#endif
 }
 
 }  // namespace brave_rewards

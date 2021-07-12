@@ -124,7 +124,12 @@ TEST_F(RewardsServiceTest, GetExternalWallet) {
 
 TEST_F(RewardsServiceTest, GetExternalWalletMultipleCustodians) {
   EnableGemini();
-  EXPECT_EQ(rewards_service()->GetExternalWalletType(), "");
+  EXPECT_EQ(rewards_service()->GetExternalWalletType(), "uphold");
+
+  profile()->GetPrefs()->SetString(prefs::kExternalWalletType,
+                                   "bad-provider-name");
+  EXPECT_EQ(rewards_service()->GetExternalWalletType(),
+            ledger::constant::kWalletUphold);
 
   profile()->GetPrefs()->SetString(prefs::kExternalWalletType,
                                    ledger::constant::kWalletUphold);

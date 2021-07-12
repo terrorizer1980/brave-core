@@ -256,10 +256,9 @@ export const onBalance = (status: number, balance: Rewards.Balance) => action(ty
 
 export const getExternalWallet = () => action(types.GET_EXTERNAL_WALLET)
 
-export const onExternalWallet = (result: number, wallet: Rewards.ExternalWallet, openLoginUrl: boolean) => action(types.ON_EXTERNAL_WALLET, {
+export const onExternalWallet = (result: number, wallet: Rewards.ExternalWallet) => action(types.ON_EXTERNAL_WALLET, {
   result,
-  wallet,
-  openLoginUrl
+  wallet
 })
 
 export const processRewardsPageUrl = (path: string, query: string) => action(types.PROCESS_REWARDS_PAGE_URL, {

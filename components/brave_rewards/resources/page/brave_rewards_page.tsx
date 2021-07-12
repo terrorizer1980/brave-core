@@ -205,8 +205,8 @@ function reconcileComplete (properties: {type: number, result: number}) {
   }
 }
 
-function externalWallet (properties: {result: number, wallet: Rewards.ExternalWallet, openLoginUrl: boolean}) {
-  getActions().onExternalWallet(properties.result, properties.wallet, properties.openLoginUrl)
+function externalWallet (properties: {result: number, wallet: Rewards.ExternalWallet}) {
+  getActions().onExternalWallet(properties.result, properties.wallet)
 }
 
 function processRewardsPageUrl (data: Rewards.ProcessRewardsPageUrl) {
@@ -270,6 +270,10 @@ function enabledInlineTippingPlatforms (list: string[]) {
   getActions().onEnabledInlineTippingPlatforms(list)
 }
 
+function externalWalletLogin (url: string) {
+  window.open(url, '_self')
+}
+
 // Expose functions to Page Handlers.
 // TODO(petemill): Use event listeners instead.
 // @ts-ignore
@@ -320,7 +324,8 @@ window.brave_rewards = {
   paymentId,
   walletPassphrase,
   onboardingStatus,
-  enabledInlineTippingPlatforms
+  enabledInlineTippingPlatforms,
+  externalWalletLogin
 }
 
 document.addEventListener('DOMContentLoaded', initialize)

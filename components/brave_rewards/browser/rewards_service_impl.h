@@ -752,6 +752,8 @@ class RewardsServiceImpl : public RewardsService,
 
   bool IsBitFlyerRegion() const;
 
+  bool IsValidWalletType(const std::string& wallet_type) const;
+
 #if defined(OS_ANDROID)
   ledger::type::Environment GetServerEnvironmentForAndroid();
   void GrantAttestationResult(
