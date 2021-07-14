@@ -100,6 +100,7 @@ pipeline {
                                                 credentials('brave-builds-github-token-for-pr-builder')
                                                 github('brave/devops', 'https')
                                             }
+
                                             branch('wknapik-build-failure-causes-in-slack-notifications')
                                         }
                                     }
