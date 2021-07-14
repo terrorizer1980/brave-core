@@ -27,6 +27,7 @@
 #include "base/logging.h"
 #include "base/sequenced_task_runner.h"
 #include "base/strings/string_number_conversions.h"
+#include "base/strings/string_split.h"
 #include "base/strings/string_util.h"
 #include "base/strings/stringprintf.h"
 #include "base/strings/utf_string_conversions.h"
@@ -51,6 +52,7 @@
 #include "brave/components/brave_rewards/browser/rewards_service_observer.h"
 #include "brave/components/brave_rewards/browser/static_values.h"
 #include "brave/components/brave_rewards/browser/switches.h"
+#include "brave/components/brave_rewards/common/buildflags/buildflags.h"
 #include "brave/components/brave_rewards/common/features.h"
 #include "brave/components/brave_rewards/common/pref_names.h"
 #include "brave/components/brave_rewards/resources/grit/brave_rewards_resources.h"
@@ -410,10 +412,6 @@ void RewardsServiceImpl::InitPrefChangeRegistrar() {
 }
 
 void RewardsServiceImpl::OnPreferenceChanged(const std::string& key) {
-  if (profile_->GetPrefs()->GetInteger(prefs::kVersion) == -1) {
-    return;
-  }
-
   if (key == prefs::kAutoContributeEnabled) {
     if (profile_->GetPrefs()->GetBoolean(prefs::kAutoContributeEnabled)) {
       StartLedgerProcessIfNecessary();
@@ -1039,7 +1037,7 @@ void RewardsServiceImpl::LoadURL(
 
   auto loader_it = url_loaders_.insert(url_loaders_.begin(), std::move(loader));
   loader_it->get()->DownloadToStringOfUnboundedSizeUntilCrashAndDie(
-      content::BrowserContext::GetDefaultStoragePartition(profile_)
+      profile_->GetDefaultStoragePartition()
           ->GetURLLoaderFactoryForBrowserProcess()
           .get(),
       base::BindOnce(&RewardsServiceImpl::OnURLLoaderComplete,
@@ -1136,7 +1134,7 @@ void ParseCaptchaResponse(
     std::string* image,
     std::string* id,
     std::string* hint) {
-  base::Optional<base::Value> value = base::JSONReader::Read(response);
+  absl::optional<base::Value> value = base::JSONReader::Read(response);
   if (!value || !value->is_dict()) {
     return;
   }
@@ -1296,6 +1294,25 @@ void RewardsServiceImpl::OnRecoverWallet(const ledger::type::Result result) {
   for (auto& observer : observers_) {
     observer.OnRecoverWallet(this, result);
   }
+}
+
+const std::vector<std::string> RewardsServiceImpl::GetExternalWalletProviders()
+    const {
+  std::vector<std::string> providers;
+
+  if (IsBitFlyerRegion()) {
+    providers.push_back(ledger::constant::kWalletBitflyer);
+    return providers;
+  }
+
+  providers.push_back(ledger::constant::kWalletUphold);
+
+#if BUILDFLAG(ENABLE_GEMINI_WALLET)
+  if (base::FeatureList::IsEnabled(features::kGeminiFeature)) {
+    providers.push_back(ledger::constant::kWalletGemini);
+  }
+#endif
+  return providers;
 }
 
 void RewardsServiceImpl::AttestPromotion(
@@ -2504,9 +2521,9 @@ void RewardsServiceImpl::PrepareLedgerEnvForTesting() {
   }
 
   bat_ledger_service_->SetTesting();
-
-  SetPublisherMinVisitTime(1);
   SetShortRetries(true);
+
+  profile_->GetPrefs()->SetInteger(prefs::kMinVisitTime, 1);
 
   // this is needed because we are using braveledger_request_util::buildURL
   // directly in RewardsBrowserTest
@@ -2886,7 +2903,8 @@ void RewardsServiceImpl::ProcessRewardsPageUrl(
 
   if (action == "authorization") {
     if (wallet_type == ledger::constant::kWalletUphold ||
-        wallet_type == ledger::constant::kWalletBitflyer) {
+        wallet_type == ledger::constant::kWalletBitflyer ||
+        wallet_type == ledger::constant::kWalletGemini) {
       ExternalWalletAuthorization(
           wallet_type,
           query_map,
@@ -3418,7 +3436,7 @@ void RewardsServiceImpl::OnWalletCreatedForSetAdsEnabled(
   }
 }
 
-std::string RewardsServiceImpl::GetExternalWalletType() const {
+bool RewardsServiceImpl::IsBitFlyerRegion() const {
   int32_t current_country = country_id_;
 
   if (!current_country) {
@@ -3432,11 +3450,40 @@ std::string RewardsServiceImpl::GetExternalWalletType() const {
           country_codes::CountryCharsToCountryID(country.at(0), country.at(1));
 
       if (id == current_country)
-        return ledger::constant::kWalletBitflyer;
+        return true;
     }
+  }
+  return false;
+}
+
+bool RewardsServiceImpl::IsValidWalletType(
+    const std::string& wallet_type) const {
+  for (auto& provider : GetExternalWalletProviders()) {
+    if (wallet_type == provider)
+      return true;
+  }
+  return false;
+}
+
+std::string RewardsServiceImpl::GetExternalWalletType() const {
+  if (IsBitFlyerRegion()) {
+    return ledger::constant::kWalletBitflyer;
+  }
+
+  const std::string type =
+      profile_->GetPrefs()->GetString(prefs::kExternalWalletType);
+
+  if (IsValidWalletType(type)) {
+    return type;
   }
 
   return ledger::constant::kWalletUphold;
+}
+
+void RewardsServiceImpl::SetExternalWalletType(const std::string& wallet_type) {
+  if (IsValidWalletType(wallet_type)) {
+    profile_->GetPrefs()->SetString(prefs::kExternalWalletType, wallet_type);
+  }
 }
 
 }  // namespace brave_rewards

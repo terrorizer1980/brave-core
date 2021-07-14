@@ -419,14 +419,14 @@ base::FilePath GetTestPath() {
   return path;
 }
 
-base::Optional<std::string> ReadFileFromTestPathToString(
+absl::optional<std::string> ReadFileFromTestPathToString(
     const std::string& name) {
   base::FilePath path = GetTestPath();
   path = path.AppendASCII(name);
 
   std::string value;
   if (!base::ReadFileToString(path, &value)) {
-    return base::nullopt;
+    return absl::nullopt;
   }
 
   ParseAndReplaceTagsForText(&value);
@@ -440,14 +440,14 @@ base::FilePath GetResourcesPath() {
   return path;
 }
 
-base::Optional<std::string> ReadFileFromResourcePathToString(
+absl::optional<std::string> ReadFileFromResourcePathToString(
     const std::string& name) {
   base::FilePath path = GetResourcesPath();
   path = path.AppendASCII(name);
 
   std::string value;
   if (!base::ReadFileToString(path, &value)) {
-    return base::nullopt;
+    return absl::nullopt;
   }
 
   return value;
@@ -591,6 +591,12 @@ void MockGetAdEvents(const std::unique_ptr<AdsClientMock>& mock) {
 
             return iter->second;
           }));
+}
+
+void MockResetAdEvents(const std::unique_ptr<AdsClientMock>& mock) {
+  ON_CALL(*mock, ResetAdEvents()).WillByDefault(Invoke([]() {
+    g_ad_events = {};
+  }));
 }
 
 void MockGetBrowsingHistory(const std::unique_ptr<AdsClientMock>& mock) {

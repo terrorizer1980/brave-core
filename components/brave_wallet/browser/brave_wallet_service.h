@@ -7,6 +7,8 @@
 #define BRAVE_COMPONENTS_BRAVE_WALLET_BROWSER_BRAVE_WALLET_SERVICE_H_
 
 #include <memory>
+#include <string>
+#include <vector>
 
 #include "base/macros.h"
 #include "base/memory/weak_ptr.h"
@@ -21,8 +23,11 @@ class SharedURLLoaderFactory;
 
 namespace brave_wallet {
 
-class KeyringController;
 class EthJsonRpcController;
+class EthTxController;
+class KeyringController;
+class AssetRatioController;
+class SwapController;
 
 class BraveWalletService : public KeyedService,
                            public base::SupportsWeakPtr<BraveWalletService> {
@@ -36,7 +41,13 @@ class BraveWalletService : public KeyedService,
 
   brave_wallet::EthJsonRpcController* rpc_controller() const;
   brave_wallet::KeyringController* keyring_controller() const;
+  brave_wallet::EthTxController* tx_controller() const;
+  brave_wallet::AssetRatioController* asset_ratio_controller() const;
+  brave_wallet::SwapController* swap_controller() const;
 
+  std::vector<std::string> WalletAccountNames() const;
+  void SetInitialAccountNames(const std::vector<std::string>& account_names);
+  void AddNewAccountName(const std::string& account_name);
   bool IsWalletBackedUp() const;
   void NotifyWalletBackupComplete();
 
@@ -44,6 +55,9 @@ class BraveWalletService : public KeyedService,
   PrefService* prefs_;
   std::unique_ptr<brave_wallet::EthJsonRpcController> rpc_controller_;
   std::unique_ptr<brave_wallet::KeyringController> keyring_controller_;
+  std::unique_ptr<brave_wallet::EthTxController> tx_controller_;
+  std::unique_ptr<brave_wallet::AssetRatioController> asset_ratio_controller_;
+  std::unique_ptr<brave_wallet::SwapController> swap_controller_;
 
   DISALLOW_COPY_AND_ASSIGN(BraveWalletService);
 };

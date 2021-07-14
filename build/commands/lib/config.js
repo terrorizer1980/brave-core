@@ -24,8 +24,8 @@ const run = (cmd, args = []) => {
 }
 
 // this is a huge hack because the npm config doesn't get passed through from brave-browser .npmrc/package.json
-var packageConfig = function(key){
-  let packages = { config: {}}
+var packageConfig = function (key) {
+  let packages = { config: {} }
   if (fs.existsSync(path.join(rootDir, 'package.json'))) {
     packages = require(path.relative(__dirname, path.join(rootDir, 'package.json')))
   }
@@ -85,8 +85,8 @@ const Config = function () {
   this.targetArch = getNPMConfig(['target_arch']) || 'x64'
   this.targetOS = getNPMConfig(['target_os'])
   this.gypTargetArch = 'x64'
-  this.targetAndroidBase ='classic'
-  this.braveGoogleApiKey = getNPMConfig(['brave_google_api_key']) || 'AIzaSyAQfxPJiounkhOjODEO5ZieffeBv6yft2Q'
+  this.targetAndroidBase = 'classic'
+  this.braveGoogleApiKey = getNPMConfig(['brave_google_api_key']) || 'AIzaSyAREPLACEWITHYOUROWNGOOGLEAPIKEY2Q'
   this.googleApiEndpoint = getNPMConfig(['brave_google_api_endpoint']) || 'https://www.googleapis.com/geolocation/v1/geolocate?key='
   this.googleDefaultClientId = getNPMConfig(['google_default_client_id']) || ''
   this.googleDefaultClientSecret = getNPMConfig(['google_default_client_secret']) || ''
@@ -100,6 +100,14 @@ const Config = function () {
   this.bitflyerStagingClientId = getNPMConfig(['bitflyer_staging_client_id']) || ''
   this.bitflyerStagingClientSecret = getNPMConfig(['bitflyer_staging_client_secret']) || ''
   this.bitflyerStagingUrl = getNPMConfig(['bitflyer_staging_url']) || ''
+  this.geminiApiUrl = getNPMConfig(['gemini_api_url']) || ''
+  this.geminiApiStagingUrl = getNPMConfig(['gemini_api_staging_url']) || ''
+  this.geminiOauthUrl = getNPMConfig(['gemini_oauth_url']) || ''
+  this.geminiOauthStagingUrl = getNPMConfig(['gemini_oauth_staging_url']) || ''
+  this.geminiWalletClientId = getNPMConfig(['gemini_wallet_client_id']) || ''
+  this.geminiWalletClientSecret = getNPMConfig(['gemini_wallet_client_secret']) || ''
+  this.geminiWalletStagingClientId = getNPMConfig(['gemini_wallet_staging_client_id']) || ''
+  this.geminiWalletStagingClientSecret = getNPMConfig(['gemini_wallet_staging_client_secret']) || ''
   this.geminiClientId = getNPMConfig(['gemini_client_id']) || ''
   this.geminiClientSecret = getNPMConfig(['gemini_client_secret']) || ''
   this.upholdClientId = getNPMConfig(['uphold_client_id']) || ''
@@ -128,7 +136,8 @@ const Config = function () {
   this.git_cache_path = getNPMConfig(['git_cache_path'])
   this.sccache = getNPMConfig(['sccache'])
   this.gomaServerHost = getNPMConfig(['goma_server_host'])
-  this.gomaJValue = (os.cpus().length + 1) * 3
+  // os.cpus().length is number of threads not physical cores
+  this.gomaJValue = Math.min(40, os.cpus().length * 2)
   this.braveStatsApiKey = getNPMConfig(['brave_stats_api_key']) || ''
   this.braveStatsUpdaterUrl = getNPMConfig(['brave_stats_updater_url']) || ''
   this.ignore_compile_failure = false
@@ -163,11 +172,11 @@ Config.prototype.isDebug = function () {
 
 Config.prototype.enableCDMHostVerification = function () {
   const enable = this.buildConfig === 'Release' &&
-                 process.platform !== 'linux' &&
-                 this.sign_widevine_cert !== "" &&
-                 this.sign_widevine_key !== "" &&
-                 this.sign_widevine_passwd !== "" &&
-                 fs.existsSync(this.signature_generator)
+    process.platform !== 'linux' &&
+    this.sign_widevine_cert !== "" &&
+    this.sign_widevine_key !== "" &&
+    this.sign_widevine_passwd !== "" &&
+    fs.existsSync(this.signature_generator)
   if (enable) {
     console.log('Widevine cdm host verification is enabled')
   } else {
@@ -226,6 +235,14 @@ Config.prototype.buildArgs = function () {
     bitflyer_staging_client_id: this.bitflyerStagingClientId,
     bitflyer_staging_client_secret: this.bitflyerStagingClientSecret,
     bitflyer_staging_url: this.bitflyerStagingUrl,
+    gemini_api_url: this.geminiApiUrl,
+    gemini_api_staging_url: this.geminiApiStagingUrl,
+    gemini_oauth_url: this.geminiOauthUrl,
+    gemini_oauth_staging_url: this.geminiOauthStagingUrl,
+    gemini_wallet_client_id: this.geminiWalletClientId,
+    gemini_wallet_client_secret: this.geminiWalletClientSecret,
+    gemini_wallet_staging_client_id: this.geminiWalletStagingClientId,
+    gemini_wallet_staging_client_secret: this.geminiWalletStagingClientSecret,
     gemini_client_id: this.geminiClientId,
     gemini_client_secret: this.geminiClientSecret,
     uphold_client_id: this.upholdClientId,
@@ -258,11 +275,6 @@ Config.prototype.buildArgs = function () {
     ...this.extraGnArgs,
   }
 
-  if (process.platform === 'darwin') {
-    args.use_system_xcode = false
-    args.mac_sdk_official_version = "11.3"
-  }
-
   if (this.shouldSign()) {
     if (process.platform === 'darwin') {
       args.mac_signing_identifier = this.mac_signing_identifier
@@ -292,9 +304,16 @@ Config.prototype.buildArgs = function () {
     args.last_chrome_installer = this.last_chrome_installer
   }
 
+  if (process.platform === 'darwin') {
+    args.allow_runtime_configurable_key_storage = true
+    if (this.use_goma && this.gomaServerHost) {
+      args.use_system_xcode = false
+    }
+  }
+
   if (this.isDebug() &&
-      this.targetOS !== 'ios' &&
-      this.targetOS !== 'android') {
+    this.targetOS !== 'ios' &&
+    this.targetOS !== 'android') {
     if (process.platform === 'darwin') {
       args.enable_stripping = false
     }
@@ -314,8 +333,8 @@ Config.prototype.buildArgs = function () {
   }
 
   if (this.targetArch === 'x64' &&
-      process.platform === 'linux' &&
-      this.targetOS !== 'android') {
+    process.platform === 'linux' &&
+    this.targetOS !== 'android') {
     // Include vaapi support
     args.use_vaapi = true
   }
@@ -342,7 +361,7 @@ Config.prototype.buildArgs = function () {
 
     args.target_android_base = this.targetAndroidBase
     args.target_android_output_format =
-        this.targetAndroidOutputFormat || (this.buildConfig === 'Release' ? 'aab' : 'apk')
+      this.targetAndroidOutputFormat || (this.buildConfig === 'Release' ? 'aab' : 'apk')
     args.android_override_version_name = this.androidOverrideVersionName
 
     args.brave_android_developer_options_code = this.braveAndroidDeveloperOptionsCode
@@ -405,8 +424,6 @@ Config.prototype.buildArgs = function () {
     args.ios_enable_credential_provider_extension = false
     args.ios_enable_widget_kit_extension = false
 
-    args.use_system_xcode = true
-
     delete args.safebrowsing_api_endpoint
     delete args.updater_prod_endpoint
     delete args.updater_dev_endpoint
@@ -431,6 +448,14 @@ Config.prototype.buildArgs = function () {
     delete args.bitflyer_staging_client_id
     delete args.bitflyer_staging_client_secret
     delete args.bitflyer_staging_url
+    delete args.gemini_api_url
+    delete args.gemini_api_staging_url
+    delete args.gemini_oauth_url
+    delete args.gemini_oauth_staging_url
+    delete args.gemini_wallet_client_id
+    delete args.gemini_wallet_client_secret
+    delete args.gemini_wallet_staging_client_id
+    delete args.gemini_wallet_staging_client_secret
     delete args.gemini_client_id
     delete args.gemini_client_secret
     delete args.uphold_client_id
@@ -453,8 +478,8 @@ Config.prototype.buildArgs = function () {
 
 Config.prototype.shouldSign = function () {
   if (this.skip_signing ||
-      this.buildConfig !== 'Release' ||
-      this.targetOS === 'ios') {
+    this.buildConfig !== 'Release' ||
+    this.targetOS === 'ios') {
     return false
   }
 
@@ -468,7 +493,7 @@ Config.prototype.shouldSign = function () {
 
   if (process.platform === 'win32') {
     return process.env.CERT !== undefined &&
-           process.env.SIGNTOOL_ARGS !== undefined
+      process.env.SIGNTOOL_ARGS !== undefined
   }
 
   return false
@@ -626,6 +651,35 @@ Config.prototype.update = function (options) {
     this.bitflyerStagingUrl = options.bitflyer_staging_url
   }
 
+  if (options.gemini_api_url) {
+    this.geminiApiUrl = options.gemini_api_url
+  }
+
+  if (options.gemini_api_staging_url) {
+    this.geminiApiStagingUrl = options.gemini_api_staging_url
+  }
+
+  if (options.gemini_oauth_url) {
+    this.geminiOauthUrl = options.gemini_oauth_url
+  }
+
+  if (options.gemini_oauth_staging_url) {
+    this.geminiOauthStagingUrl = options.gemini_oauth_staging_url
+  }
+
+  if (options.gemini_wallet_client_secret) {
+    this.geminiWalletClientSecret = options.gemini_wallet_client_secret
+  }
+
+  if (options.gemini_wallet_staging_client_id) {
+    this.geminiWalletStagingClientId = options.gemini_wallet_staging_client_id
+  }
+
+  if (options.gemini_wallet_staging_client_secret) {
+    this.geminiWalletStagingClientSecret = options.gemini_wallet_staging_client_secret
+  }
+
+
   if (options.gemini_client_id) {
     this.geminiClientId = options.gemini_client_id
   }
@@ -720,7 +774,7 @@ Config.prototype.update = function (options) {
   if (options.xcode_gen) {
     assert(process.platform === 'darwin' || options.target_os === 'ios')
     if (options.xcode_gen === 'ios') {
-      this.xcode_gen_target = '//brave/vendor/brave-ios:*'
+      this.xcode_gen_target = '//brave/ios:*'
     } else {
       this.xcode_gen_target = options.xcode_gen
     }
@@ -778,6 +832,8 @@ Object.defineProperty(Config.prototype, 'defaultOptions', {
     if (this.use_goma && this.gomaServerHost) {
       env.CC_WRAPPER = path.join(this.depotToolsDir, '.cipd_bin', 'gomacc')
       env.GOMA_SERVER_HOST = this.gomaServerHost
+      // env.NINJA_REMOTE_NUM_JOBS = this.gomaJValue
+      // console.log('ninja remote jobs number is ' + env.NINJA_REMOTE_NUM_JOBS)
       console.log('using goma with j value of ' + this.gomaJValue + ' at ' + this.gomaServerHost)
     } else if (this.sccache) {
       env.CC_WRAPPER = this.sccache

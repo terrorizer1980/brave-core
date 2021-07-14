@@ -15,7 +15,7 @@ const SkColor kLightToolbar = SkColorSetRGB(0xf3, 0xf3, 0xf3);
 const SkColor kLightFrame = SkColorSetRGB(0xd5, 0xd9, 0xdc);
 const SkColor kLightToolbarIcon = SkColorSetRGB(0x42, 0x42, 0x42);
 
-base::Optional<SkColor> MaybeGetDefaultColorForBraveLightUi(int id) {
+absl::optional<SkColor> MaybeGetDefaultColorForBraveLightUi(int id) {
   switch (id) {
     // Applies when the window is active, tabs and also tab bar everywhere
     // except active tab
@@ -79,10 +79,17 @@ base::Optional<SkColor> MaybeGetDefaultColorForBraveLightUi(int id) {
         COLOR_SIDEBAR_ADD_BUBBLE_ITEM_TEXT_BACKGROUND_HOVERED:
       return SkColorSetRGB(0x4C, 0x54, 0xD2);
 #endif
+#if BUILDFLAG(ENABLE_SPEEDREADER)
+    case BraveThemeProperties::COLOR_SPEEDREADER_ICON:
+    case BraveThemeProperties::COLOR_SPEEDREADER_TOGGLE_THUMB:
+      return SkColorSetRGB(0x4C, 0x54, 0xD2);
+    case BraveThemeProperties::COLOR_SPEEDREADER_TOGGLE_TRACK:
+      return SkColorSetRGB(0xE1, 0xE2, 0xF6);
+#endif
     case BraveThemeProperties::COLOR_FOR_TEST:
       return BraveThemeProperties::kLightColorForTest;
     default:
-      return base::nullopt;
+      return absl::nullopt;
   }
 }
 
@@ -90,7 +97,7 @@ const SkColor kDarkToolbar = SkColorSetRGB(0x30, 0x34, 0x43);
 const SkColor kDarkFrame = SkColorSetRGB(0x0C, 0x0C, 0x17);
 const SkColor kDarkToolbarIcon = SkColorSetRGB(0xed, 0xed, 0xed);
 
-base::Optional<SkColor> MaybeGetDefaultColorForBraveDarkUi(int id) {
+absl::optional<SkColor> MaybeGetDefaultColorForBraveDarkUi(int id) {
   switch (id) {
     // Applies when the window is active, tabs and also tab bar everywhere
     // except active tab
@@ -156,17 +163,25 @@ base::Optional<SkColor> MaybeGetDefaultColorForBraveDarkUi(int id) {
         COLOR_SIDEBAR_ADD_BUBBLE_ITEM_TEXT_BACKGROUND_HOVERED:
       return SkColorSetRGB(0x4C, 0x54, 0xD2);
 #endif
+#if BUILDFLAG(ENABLE_SPEEDREADER)
+    case BraveThemeProperties::COLOR_SPEEDREADER_ICON:
+      return SkColorSetRGB(0x73, 0x7A, 0xDE);
+    case BraveThemeProperties::COLOR_SPEEDREADER_TOGGLE_THUMB:
+      return SkColorSetRGB(0x44, 0x36, 0xE1);
+    case BraveThemeProperties::COLOR_SPEEDREADER_TOGGLE_TRACK:
+      return SkColorSetRGB(0x76, 0x79, 0xB1);
+#endif
     case BraveThemeProperties::COLOR_FOR_TEST:
       return BraveThemeProperties::kDarkColorForTest;
     default:
-      return base::nullopt;
+      return absl::nullopt;
   }
 }
 
 const SkColor kPrivateFrame = SkColorSetRGB(0x19, 0x16, 0x2F);
 const SkColor kPrivateToolbar = SkColorSetRGB(0x32, 0x25, 0x60);
 
-base::Optional<SkColor> MaybeGetDefaultColorForPrivateUi(int id) {
+absl::optional<SkColor> MaybeGetDefaultColorForPrivateUi(int id) {
   switch (id) {
     // Applies when the window is active, tabs and also tab bar everywhere
     // except active tab
@@ -217,7 +232,7 @@ base::Optional<SkColor> MaybeGetDefaultColorForPrivateUi(int id) {
 
 const SkColor kPrivateTorFrame = SkColorSetRGB(0x19, 0x0E, 0x2A);
 const SkColor kPrivateTorToolbar = SkColorSetRGB(0x49, 0x2D, 0x58);
-base::Optional<SkColor> MaybeGetDefaultColorForPrivateTorUi(int id) {
+absl::optional<SkColor> MaybeGetDefaultColorForPrivateTorUi(int id) {
   switch (id) {
     // Applies when the window is active, tabs and also tab bar everywhere
     // except active tab
@@ -269,9 +284,11 @@ bool IsBraveThemeProperties(int id) {
 
 }  // namespace BraveThemeProperties
 // Returns a |nullopt| if the UI color is not handled by Brave.
-base::Optional<SkColor> MaybeGetDefaultColorForBraveUi(
-    int id, bool incognito,
-    bool is_tor, dark_mode::BraveDarkModeType dark_mode) {
+absl::optional<SkColor> MaybeGetDefaultColorForBraveUi(
+    int id,
+    bool incognito,
+    bool is_tor,
+    dark_mode::BraveDarkModeType dark_mode) {
   // Consistent (and stable) values across all themes
   switch (id) {
     case ThemeProperties::COLOR_TAB_THROBBER_SPINNING:
@@ -297,5 +314,5 @@ base::Optional<SkColor> MaybeGetDefaultColorForBraveUi(
     default:
       NOTREACHED();
   }
-  return base::nullopt;
+  return absl::nullopt;
 }

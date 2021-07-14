@@ -10,7 +10,7 @@
 
 #include "brave/browser/ui/speedreader/speedreader_bubble_view.h"
 #include "chrome/browser/ui/views/location_bar/location_bar_bubble_delegate_view.h"
-#include "ui/views/metadata/metadata_header_macros.h"
+#include "ui/base/metadata/metadata_header_macros.h"
 
 namespace content {
 class WebContents;
@@ -56,10 +56,13 @@ class SpeedreaderModeBubble : public SpeedreaderBubbleView,
 
   // views::BubbleDialogDelegateView:
   void Init() override;
+  void OnThemeChanged() override;
 
-  // views::View
+  // views::View:
+  void AddedToWidget() override;
   gfx::Size CalculatePreferredSize() const override;
 
+  void UpdateColors();
   void OnButtonPressed(const ui::Event& event);
   void OnLinkClicked(const ui::Event& event);
 

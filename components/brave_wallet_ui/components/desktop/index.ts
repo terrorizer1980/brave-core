@@ -9,10 +9,15 @@ import LineChart from './line-chart'
 import PortfolioAssetItem from './portfolio-asset-item'
 import PortfolioAccountItem from './portfolio-account-item'
 import PortfolioTransactionItem from './portfolio-transaction-item'
+import AccountListItem from './account-list-item'
 import AddButton from './add-button'
 import LockScreen from './lock-screen'
 import WalletMorePopup from './wallet-more-popup'
 import BackupWarningBanner from './backup-warning-banner'
+import PopupModal from './popup-modals'
+import AddAccountModal from './popup-modals/add-account-modal'
+import AccountSettingsModal from './popup-modals/account-settings-modal'
+import AssetWatchlistItem from './asset-watchlist-item'
 import { CryptoView, PortfolioView } from './views'
 import {
   OnboardingWelcome,
@@ -46,5 +51,10 @@ export {
   LockScreen,
   WalletMorePopup,
   BackupWarningBanner,
-  OnboardingRestore
+  OnboardingRestore,
+  AccountListItem,
+  PopupModal,
+  AddAccountModal,
+  AccountSettingsModal,
+  AssetWatchlistItem
 }

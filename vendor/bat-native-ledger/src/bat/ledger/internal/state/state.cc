@@ -32,7 +32,7 @@ std::string VectorDoubleToString(const std::vector<double>& items) {
 }
 
 std::vector<double> StringToVectorDouble(const std::string& items_string) {
-  base::Optional<base::Value> list = base::JSONReader::Read(items_string);
+  absl::optional<base::Value> list = base::JSONReader::Read(items_string);
   if (!list || !list->is_list()) {
     return {};
   }
@@ -365,6 +365,10 @@ bool State::GetPromotionCorruptedMigrated() {
 
 void State::SetPromotionLastFetchStamp(const uint64_t stamp) {
   ledger_->ledger_client()->SetUint64State(kPromotionLastFetchStamp, stamp);
+}
+
+void State::ResetWalletType() {
+  ledger_->ledger_client()->SetStringState(kExternalWalletType, "");
 }
 
 uint64_t State::GetPromotionLastFetchStamp() {

@@ -82,6 +82,7 @@ IN_PROC_BROWSER_TEST_F(BraveMainDelegateBrowserTest, DisabledFeatures) {
     &features::kIdleDetection,
     &features::kLangClientHintHeader,
     &features::kNotificationTriggers,
+    &features::kPrivacySandboxSettings,
     &features::kSignedExchangePrefetchCacheForNavigations,
     &features::kSignedExchangeSubresourcePrefetch,
     &features::kSubresourceWebBundles,
@@ -95,6 +96,7 @@ IN_PROC_BROWSER_TEST_F(BraveMainDelegateBrowserTest, DisabledFeatures) {
     &net::features::kFirstPartySets,
     &network::features::kTrustTokens,
     &network_time::kNetworkTimeServiceQuerying,
+    &password_manager::features::kEnablePasswordsAccountStorage,
   };
 
   for (const auto* feature : disabled_features)

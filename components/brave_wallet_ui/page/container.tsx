@@ -27,12 +27,17 @@ import {
   NavTypes,
   WalletState,
   PageState,
-  WalletPageState
+  WalletPageState,
+  AssetPriceTimeframe,
+  AssetOptionType
 } from '../constants/types'
 import { NavOptions } from '../options/side-nav-options'
 import BuySendSwap from '../components/buy-send-swap'
 import Onboarding from '../stories/screens/onboarding'
 import BackupWallet from '../stories/screens/backup-wallet'
+import { formatePrices } from '../utils/format-prices'
+import { convertMojoTimeToJS } from '../utils/mojo-time'
+import { AssetOptions } from '../options/asset-options'
 
 type Props = {
   wallet: WalletState
@@ -47,18 +52,28 @@ function Container (props: Props) {
     isWalletCreated,
     isWalletLocked,
     isWalletBackedUp,
-    hasIncorrectPassword
+    hasIncorrectPassword,
+    accounts,
+    transactions
   } = props.wallet
 
   // Page Props
   const {
     showRecoveryPhrase,
     invalidMnemonic,
-    mnemonic
+    mnemonic,
+    selectedTimeline,
+    selectedAsset,
+    selectedAssetPrice,
+    selectedAssetPriceHistory,
+    portfolioPriceHistory,
+    userAssets,
+    isFetchingPriceHistory
   } = props.page
 
   const [view, setView] = React.useState<NavTypes>('crypto')
   const [inputValue, setInputValue] = React.useState<string>('')
+  const [showAddModal, setShowAddModal] = React.useState<boolean>(false)
 
   // In the future these will be actual paths
   // for example wallet/rewards
@@ -119,6 +134,101 @@ function Container (props: Props) {
 
   const recoveryPhrase = (mnemonic || '').split(' ')
 
+  const onChangeTimeline = (timeline: AssetPriceTimeframe) => {
+    if (selectedAsset) {
+      props.walletPageActions.selectAsset({ asset: selectedAsset, timeFrame: timeline })
+    }
+  }
+
+  // This will scrape all of the user's accounts and combine the asset balances for a single asset
+  const fullAssetBalance = (asset: AssetOptionType) => {
+    const newList = accounts.filter((account) => account.asset.includes(asset.symbol.toLowerCase()))
+    const amounts = newList.map((account) => {
+      return account.balance
+    })
+    const grandTotal = amounts.reduce(function (a, b) {
+      return a + b
+    }, 0)
+    return grandTotal
+  }
+
+  // This will scrape all of the user's accounts and combine the fiat value for a single asset
+  const fullAssetFiatBalance = (asset: AssetOptionType) => {
+    const newList = accounts.filter((account) => account.asset.includes(asset.symbol.toLowerCase()))
+    const amounts = newList.map((account) => {
+      return Number(account.fiatBalance)
+    })
+    const grandTotal = amounts.reduce(function (a, b) {
+      return a + b
+    }, 0)
+    return grandTotal
+  }
+
+  // This looks at the users asset list and returns the full balance for each asset
+  const userAssetList = React.useMemo(() => {
+    const newList = AssetOptions.filter((asset) => userAssets.includes(asset.id))
+    return newList.map((asset) => {
+      return {
+        asset: asset,
+        assetBalance: fullAssetBalance(asset),
+        fiatBalance: fullAssetFiatBalance(asset)
+      }
+    })
+  }, [userAssets, accounts])
+
+  const onSelectAsset = (asset: AssetOptionType) => {
+    props.walletPageActions.selectAsset({ asset: asset, timeFrame: selectedTimeline })
+  }
+
+  // This will scrape all of the user's accounts and combine the fiat value for every asset
+  const fullPortfolioBalance = React.useMemo(() => {
+    const amountList = userAssetList.map((item) => {
+      return fullAssetFiatBalance(item.asset)
+    })
+    const grandTotal = amountList.reduce(function (a, b) {
+      return a + b
+    }, 0)
+    return formatePrices(grandTotal)
+  }, [userAssetList])
+
+  const formatedPriceHistory = React.useMemo(() => {
+    const formated = selectedAssetPriceHistory.map((obj) => {
+      return {
+        date: convertMojoTimeToJS(obj.date),
+        close: Number(obj.price)
+      }
+    })
+    return formated
+  }, [selectedAssetPriceHistory])
+
+  const onToggleAddModal = () => {
+    setShowAddModal(!showAddModal)
+  }
+
+  const onCreateAccount = (name: string) => {
+    const created = props.walletPageActions.addAccountToWallet({ accountName: name })
+    if (created) {
+      onToggleAddModal()
+    }
+  }
+
+  const onConnectHardwareWallet = () => {
+    // Todo: Add logic to connect a hardware wallet
+  }
+
+  const onImportAccount = () => {
+    // Todo: Add logic to import a secondary account
+  }
+
+  const onUpdateAccountName = () => {
+    // Todo: Need to add logic to update and Existing Account Name
+  }
+
+  const onUpdateWatchList = () => {
+    // Todo: Need to persist a AssetWatchList and add logic to update
+    // the AssetWatchList
+  }
+
   const renderWallet = React.useMemo(() => {
     if (!isWalletCreated) {
       return (
@@ -154,6 +264,26 @@ function Container (props: Props) {
                   onLockWallet={lockWallet}
                   needsBackup={!isWalletBackedUp}
                   onShowBackup={onShowBackup}
+                  accounts={accounts}
+                  onChangeTimeline={onChangeTimeline}
+                  onSelectAsset={onSelectAsset}
+                  portfolioBalance={fullPortfolioBalance}
+                  selectedAsset={selectedAsset}
+                  selectedAssetPrice={selectedAssetPrice}
+                  selectedAssetPriceHistory={formatedPriceHistory}
+                  portfolioPriceHistory={portfolioPriceHistory}
+                  selectedTimeline={selectedTimeline}
+                  transactions={transactions}
+                  userAssetList={userAssetList}
+                  onConnectHardwareWallet={onConnectHardwareWallet}
+                  onCreateAccount={onCreateAccount}
+                  onImportAccount={onImportAccount}
+                  isLoading={isFetchingPriceHistory}
+                  showAddModal={showAddModal}
+                  onToggleAddModal={onToggleAddModal}
+                  onUpdateAccountName={onUpdateAccountName}
+                  onUpdateWatchList={onUpdateWatchList}
+                  userWatchList={['1']}
                 />
               )}
             </>

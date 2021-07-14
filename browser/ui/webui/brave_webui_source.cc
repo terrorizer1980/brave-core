@@ -190,6 +190,7 @@ void CustomizeWebUIHTMLSource(const std::string &name,
         { "braveTodayDisableSourceCommand",
             IDS_BRAVE_TODAY_DISABLE_SOURCE_COMMAND},
         { "promoted", IDS_BRAVE_TODAY_PROMOTED },
+        { "ad", IDS_BRAVE_TODAY_DISPLAY_AD_LABEL },
 
         { "addWidget", IDS_BRAVE_NEW_TAB_WIDGET_ADD },
         { "hideWidget", IDS_BRAVE_NEW_TAB_WIDGET_HIDE },
@@ -442,7 +443,6 @@ void CustomizeWebUIHTMLSource(const std::string &name,
         { "setDefaultSearchEngine", IDS_BRAVE_WELCOME_PAGE_SEARCH_TITLE },
         { "chooseSearchEngine", IDS_BRAVE_WELCOME_PAGE_SEARCH_DESC },
         { "selectSearchEngine", IDS_BRAVE_WELCOME_PAGE_SEARCH_SELECT },
-        { "privateExperience", IDS_BRAVE_WELCOME_PAGE_PRIVATE_EXPERIENCE_DESC },
         { "skipWelcomeTour", IDS_BRAVE_WELCOME_PAGE_SKIP_BUTTON },
         { "next", IDS_BRAVE_WELCOME_PAGE_NEXT_BUTTON },
         { "done", IDS_BRAVE_WELCOME_PAGE_DONE_BUTTON },
@@ -928,7 +928,8 @@ void CustomizeWebUIHTMLSource(const std::string &name,
         { "peerDetailsLink", IDS_IPFS_PEERS_DETAILS_LINK },
         { "installing", IDS_IPFS_INSTALLING },
         { "runGarbageCollectionTitle", IDS_IPFS_RUN_GC_BUTTON },
-        { "gcError", IDS_IPFS_GC_ERROR }
+        { "gcError", IDS_IPFS_GC_ERROR },
+        { "rotateIdentity", IDS_IPFS_ROTATE_IDENTITY_TITLE }
       }
     }, {
 #endif
@@ -1158,7 +1159,8 @@ content::WebUIDataSource* CreateWebUIDataSource(
     // Allow a policy to be created so that we
     // can allow trusted HTML and trusted lazy-load script sources.
     source->OverrideContentSecurityPolicy(
-        network::mojom::CSPDirectiveName::TrustedTypes, "default");
+        network::mojom::CSPDirectiveName::TrustedTypes,
+        "trusted-types default;");
   }
 
   source->UseStringsJs();

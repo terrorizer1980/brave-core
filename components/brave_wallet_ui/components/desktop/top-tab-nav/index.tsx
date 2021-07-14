@@ -1,11 +1,18 @@
 import * as React from 'react'
-import { TopTabNavObjectType, TopTabNavTypes } from '../../../constants/types'
+import {
+  TopTabNavObjectType,
+  TopTabNavTypes,
+  AddAccountNavTypes,
+  AccountSettingsNavTypes
+} from '../../../constants/types'
+
 // Styled Components
 import {
   StyledWrapper,
+  LockIcon,
   MoreRow,
   MoreButton,
-  MoreIcon,
+  EmptyPadding,
   Line
 } from './style'
 
@@ -14,19 +21,20 @@ import { TopTabNavButton } from '../'
 
 export interface Props {
   tabList: TopTabNavObjectType[]
-  selectedTab: TopTabNavTypes
-  onSubmit: (id: TopTabNavTypes) => void
-  hasMoreButton?: boolean
+  selectedTab: TopTabNavTypes | AddAccountNavTypes | AccountSettingsNavTypes
+  onSubmit: (id: TopTabNavTypes | AddAccountNavTypes | AccountSettingsNavTypes) => void
+  onLockWallet?: () => void
+  hasMoreButtons?: boolean
   onClickMoreButton?: () => void
 }
 
 export default class TopTabNav extends React.PureComponent<Props, {}> {
-  onNav = (id: TopTabNavTypes) => () => {
+  onNav = (id: TopTabNavTypes | AddAccountNavTypes | AccountSettingsNavTypes) => () => {
     this.props.onSubmit(id)
   }
 
   render () {
-    const { tabList, selectedTab, hasMoreButton, onClickMoreButton } = this.props
+    const { tabList, selectedTab, hasMoreButtons, onLockWallet } = this.props
     return (
       <StyledWrapper>
         {tabList.map((option) =>
@@ -37,14 +45,17 @@ export default class TopTabNav extends React.PureComponent<Props, {}> {
             text={option.name}
           />
         )}
-        {hasMoreButton &&
-          <MoreRow>
-            <MoreButton onClick={onClickMoreButton}>
-              <MoreIcon />
+
+        <MoreRow>
+          {hasMoreButtons ? (
+            <MoreButton onClick={onLockWallet}>
+              <LockIcon />
             </MoreButton>
-            <Line />
-          </MoreRow>
-        }
+          ) : (
+            <EmptyPadding />
+          )}
+          <Line />
+        </MoreRow>
       </StyledWrapper>
     )
   }

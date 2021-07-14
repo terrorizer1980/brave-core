@@ -8,6 +8,7 @@
 #include "base/files/file_util.h"
 #include "base/path_service.h"
 #include "base/run_loop.h"
+#include "base/strings/stringprintf.h"
 #include "base/test/bind.h"
 #include "bat/ledger/mojom_structs.h"
 #include "brave/common/brave_paths.h"
@@ -74,6 +75,10 @@ std::string BalanceDoubleToString(double amount) {
 
 std::string GetUpholdExternalAddress() {
   return "abe5f454-fedd-4ea9-9203-470ae7315bb3";
+}
+
+std::string GetGeminiExternalAddress() {
+  return "00471311-fc4d-463b-9317-579e82b0a6b8";
 }
 
 void NavigateToPublisherPage(
