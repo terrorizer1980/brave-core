@@ -34,7 +34,7 @@ def get_url(platform):
     elif platform == 'darwin':
         filename = "rust_deps_mac_" + RUST_DEPS_PACKAGE_VERSION + ".gz"
     elif platform == 'ios':
-        filename = "rust_deps_ios_" + RUST_DEPS_PACKAGE_VERSION + ".gz"
+        filename = "test/rust_deps_ios_" + RUST_DEPS_PACKAGE_VERSION + ".gz"
     elif platform.startswith('linux'):
         filename = "rust_deps_linux_" + RUST_DEPS_PACKAGE_VERSION + ".gz"
     else:
