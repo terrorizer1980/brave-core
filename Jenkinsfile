@@ -101,7 +101,7 @@ pipeline {
                                                 github('brave/devops', 'https')
                                             }
 
-                                            branch('wknapik-build-failure-causes-in-slack-notifications')
+                                            branch('chromium-brave-core')
                                         }
                                     }
                                     scriptPath("jenkins/jobs/browser/pr-brave-browser-${PLATFORM}.Jenkinsfile")
