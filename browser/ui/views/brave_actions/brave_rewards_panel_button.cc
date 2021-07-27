@@ -9,6 +9,7 @@
 #include <string>
 #include <utility>
 
+// TODO(zenparsing): Audit these
 #include "brave/browser/ui/brave_actions/brave_action_icon_with_badge_image_source.h"  // NOLINT
 #include "brave/common/webui_url_constants.h"
 #include "brave/components/brave_rewards/common/pref_names.h"
@@ -38,7 +39,7 @@ namespace {
 
 constexpr SkColor kBadgeTextColor = SK_ColorWHITE;
 constexpr SkColor kBadgeNotificationBG = SkColorSetRGB(0xfb, 0x54, 0x2b);
-constexpr SkColor kBadgeVerifiedBG = SkColorSetRGB(0x4c, 0x54, 0xd2);
+// constexpr SkColor kBadgeVerifiedBG = SkColorSetRGB(0x4c, 0x54, 0xd2);
 
 class ButtonHighlightPathGenerator : public views::HighlightPathGenerator {
  public:
@@ -93,6 +94,7 @@ BraveRewardsPanelButton::BraveRewardsPanelButton(
 
   // Set icon on badge using actual extension icon resource
   gfx::ImageSkia image;
+  ui::ResourceBundle& rb = ui::ResourceBundle::GetSharedInstance();
   const SkBitmap bitmap =
       rb.GetImageNamed(IDR_BRAVE_REWARDS_ICON_64).AsBitmap();
   float scale = static_cast<float>(bitmap.width()) / kBraveActionGraphicSize;
@@ -100,8 +102,6 @@ BraveRewardsPanelButton::BraveRewardsPanelButton(
   image_source->SetIcon(gfx::Image(image));
 
   // Set text on badge
-  std::unique_ptr<IconWithBadgeImageSource::Badge> badge;
-
   // TODO(petemill): Provide an observer if this value is expected to change
   // during runtime. At time of implementation, this would only be different
   // after a restart.
@@ -124,6 +124,16 @@ BraveRewardsPanelButton::BraveRewardsPanelButton(
 }
 
 BraveRewardsPanelButton::~BraveRewardsPanelButton() = default;
+
+void BraveRewardsPanelButton::Update() {
+  // TODO(zenparsing): Update the badge depending on the current web contents
+  // and the current notification count. This should be called automatically
+  // from BraveActionContainer::Update. If there are notifications, then show
+  // a notification count. Otherwise, if the current web contents URL indicates
+  // a verified publisher, show a checkmark. We also need to listen for events
+  // from the Rewards service: when the notification count changes and when the
+  // publisher info has been updated, we should also call this method.
+}
 
 void BraveRewardsPanelButton::OnWidgetDestroying(views::Widget* widget) {
   auto* bubble_widget = bubble_manager_.GetBubbleWidget();

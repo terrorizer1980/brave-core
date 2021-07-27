@@ -18,7 +18,7 @@
 
 class Profile;
 
-// Button that lives in the actions containers and opens the Rewards panel.
+// A button that lives in the actions container and opens the Rewards panel.
 class BraveRewardsPanelButton : public views::LabelButton,
                                 public views::WidgetObserver {
  public:
@@ -29,6 +29,8 @@ class BraveRewardsPanelButton : public views::LabelButton,
 
   BraveRewardsPanelButton(const BraveRewardsPanelButton&) = delete;
   BraveRewardsPanelButton& operator=(const BraveRewardsPanelButton&) = delete;
+
+  void Update();
 
   // views::View:
   gfx::Size CalculatePreferredSize() const override;

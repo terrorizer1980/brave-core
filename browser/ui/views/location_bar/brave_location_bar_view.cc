@@ -96,8 +96,7 @@ void BraveLocationBarView::Init() {
 #endif
 
   // brave action buttons
-  brave_actions_ = new BraveActionsContainer(browser_, profile());
-  brave_actions_->Init();
+  brave_actions_ = new BraveActionsContainer(browser_);
   AddChildView(brave_actions_);
   // Call Update again to cause a Layout
   Update(nullptr);
@@ -164,7 +163,7 @@ void BraveLocationBarView::OnChanged() {
     // Do not show actions whilst omnibar is open or url is being edited
     const bool should_hide =
         ShouldHidePageActionIcons() && !omnibox_view_->GetText().empty();
-    brave_actions_->SetShouldHide(should_hide);
+    brave_actions_->SetVisible(!should_hide);
   }
 #if BUILDFLAG(ENABLE_TOR)
   if (onion_location_view_)

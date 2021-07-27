@@ -34,9 +34,9 @@
 
 #if BUILDFLAG(BRAVE_REWARDS_ENABLED)
 #include "brave/browser/ui/webui/brave_rewards/rewards_panel_ui.h"
-#include "brave/browser/ui/webui/brave_tip_ui.h"
 #include "brave/browser/ui/webui/brave_rewards_internals_ui.h"
 #include "brave/browser/ui/webui/brave_rewards_page_ui.h"
+#include "brave/browser/ui/webui/brave_tip_ui.h"
 #endif
 
 #if BUILDFLAG(BRAVE_WALLET_ENABLED) && !defined(OS_ANDROID)
