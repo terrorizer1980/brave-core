@@ -23,10 +23,6 @@
 
 class BraveActionViewController;
 
-namespace extensions {
-class ExtensionActionManager;
-}
-
 namespace views {
 class Button;
 }

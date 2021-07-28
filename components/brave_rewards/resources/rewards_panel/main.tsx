@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // to go from "visible" to "hidden" immediately, and then when this
       // message is processed it goes back to "visible" (which will resend this
       // message).
-      chrome.send('ShowPanel')
+      chrome.send('showPanel')
     }
   })
 
@@ -25,5 +25,5 @@ document.addEventListener('DOMContentLoaded', () => {
 
   ReactDOM.render(<Root />, document.getElementById('root'))
 
-  chrome.send('PageReady');
+  chrome.send('pageReady');
 })

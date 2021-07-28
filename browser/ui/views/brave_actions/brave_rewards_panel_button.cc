@@ -9,37 +9,39 @@
 #include <string>
 #include <utility>
 
-// TODO(zenparsing): Audit these
-#include "brave/browser/ui/brave_actions/brave_action_icon_with_badge_image_source.h"  // NOLINT
+#include "base/strings/string_number_conversions.h"
+#include "brave/app/vector_icons/vector_icons.h"
+#include "brave/browser/brave_rewards/rewards_service_factory.h"
+#include "brave/browser/ui/brave_actions/brave_action_icon_with_badge_image_source.h"
 #include "brave/common/webui_url_constants.h"
 #include "brave/components/brave_rewards/common/pref_names.h"
-#include "brave/components/brave_rewards/resources/extension/grit/brave_rewards_extension_resources.h"  // NOLINT
 #include "chrome/browser/profiles/profile.h"
+#include "chrome/browser/themes/theme_properties.h"
 #include "chrome/browser/ui/views/chrome_layout_provider.h"
 #include "chrome/browser/ui/views/toolbar/toolbar_action_view.h"
 #include "chrome/browser/ui/views/toolbar/toolbar_ink_drop_util.h"
 #include "components/grit/brave_components_strings.h"
 #include "components/prefs/pref_service.h"
-#include "extensions/common/constants.h"
-#include "third_party/skia/include/core/SkBitmap.h"
-#include "ui/base/resource/resource_bundle.h"
+#include "ui/base/theme_provider.h"
 #include "ui/gfx/geometry/rect.h"
-#include "ui/gfx/image/canvas_image_source.h"
 #include "ui/gfx/image/image.h"
 #include "ui/gfx/image/image_skia.h"
-#include "ui/gfx/image/image_skia_rep_default.h"
+#include "ui/gfx/paint_vector_icon.h"
 #include "ui/gfx/skia_util.h"
 #include "ui/views/animation/ink_drop_impl.h"
 #include "ui/views/controls/button/label_button_border.h"
 #include "ui/views/controls/highlight_path_generator.h"
-#include "ui/views/view.h"
 #include "ui/views/view_class_properties.h"
 
 namespace {
 
+using brave_rewards::RewardsNotificationService;
+using brave_rewards::RewardsServiceFactory;
+
 constexpr SkColor kBadgeTextColor = SK_ColorWHITE;
 constexpr SkColor kBadgeNotificationBG = SkColorSetRGB(0xfb, 0x54, 0x2b);
-// constexpr SkColor kBadgeVerifiedBG = SkColorSetRGB(0x4c, 0x54, 0xd2);
+constexpr SkColor kBadgeVerifiedBG = SkColorSetRGB(0x4c, 0x54, 0xd2);
+const char kVerifiedCheck[] = "\u2713";
 
 class ButtonHighlightPathGenerator : public views::HighlightPathGenerator {
  public:
@@ -48,126 +50,86 @@ class ButtonHighlightPathGenerator : public views::HighlightPathGenerator {
     // Set the highlight path for the toolbar button, making it inset so that
     // the badge can show outside it in the fake margin on the right that we are
     // creating.
+    DCHECK(view);
     gfx::Rect rect(view->GetPreferredSize());
     rect.Inset(gfx::Insets(0, 0, 0, kBraveActionRightMargin));
-    const int radii = ChromeLayoutProvider::Get()->GetCornerRadiusMetric(
+
+    auto* layout_provider = ChromeLayoutProvider::Get();
+    DCHECK(layout_provider);
+
+    int radius = layout_provider->GetCornerRadiusMetric(
         views::Emphasis::kMaximum, rect.size());
+
     SkPath path;
-    path.addRoundRect(gfx::RectToSkRect(rect), radii, radii);
+    path.addRoundRect(gfx::RectToSkRect(rect), radius, radius);
     return path;
   }
 };
+
+RewardsNotificationService* GetRewardsNotificationService(Profile* profile) {
+  DCHECK(profile);
+  auto* rewards_service = RewardsServiceFactory::GetForProfile(profile);
+  return rewards_service ? rewards_service->GetNotificationService() : nullptr;
+}
 
 }  // namespace
 
 BraveRewardsPanelButton::BraveRewardsPanelButton(
     Profile* profile,
     ToolbarActionView::Delegate* delegate)
-    : LabelButton(PressedCallback()),
-      button_controller_(new views::MenuButtonController(
-          this,
-          base::BindRepeating(&BraveRewardsPanelButton::OnButtonPressed,
-                              base::Unretained(this)),
-          std::make_unique<views::Button::DefaultButtonControllerDelegate>(
-              this))),
+    : profile_(profile),
+      delegate_(delegate),
       bubble_manager_(this,
-                      profile,
+                      profile_,
                       GURL(kBraveRewardsPanelURL),
-                      IDS_ACCNAME_BRAVE_REWARDS_BUBBLE),
-      profile_(profile),
-      delegate_(delegate) {
-  SetButtonController(
-      std::unique_ptr<views::ButtonController>(button_controller_));
+                      IDS_ACCNAME_BRAVE_REWARDS_BUBBLE) {
+  SetButtonController(std::make_unique<views::MenuButtonController>(
+      this,
+      base::BindRepeating(&BraveRewardsPanelButton::ToggleRewardsPanel,
+                          base::Unretained(this)),
+      std::make_unique<views::Button::DefaultButtonControllerDelegate>(this)));
+
+  views::HighlightPathGenerator::Install(
+      this, std::make_unique<ButtonHighlightPathGenerator>());
 
   ink_drop()->SetMode(views::InkDropHost::InkDropMode::ON);
+  ink_drop()->SetVisibleOpacity(kToolbarInkDropVisibleOpacity);
   ink_drop()->SetBaseColorCallback(base::BindRepeating(
       [](views::View* host) { return GetToolbarInkDropBaseColor(host); },
       this));
 
   SetHasInkDropActionOnClick(true);
   SetHorizontalAlignment(gfx::ALIGN_CENTER);
-  ink_drop()->SetVisibleOpacity(kToolbarInkDropVisibleOpacity);
 
-  auto preferred_size = GetPreferredSize();
-  std::unique_ptr<IconWithBadgeImageSource> image_source(
-      new BraveActionIconWithBadgeImageSource(preferred_size));
+  pref_change_registrar_.Init(profile_->GetPrefs());
+  pref_change_registrar_.Add(
+      brave_rewards::prefs::kBadgeText,
+      base::BindRepeating(&BraveRewardsPanelButton::OnPreferencesChanged,
+                          base::Unretained(this)));
 
-  // Set icon on badge using actual extension icon resource
-  gfx::ImageSkia image;
-  ui::ResourceBundle& rb = ui::ResourceBundle::GetSharedInstance();
-  const SkBitmap bitmap =
-      rb.GetImageNamed(IDR_BRAVE_REWARDS_ICON_64).AsBitmap();
-  float scale = static_cast<float>(bitmap.width()) / kBraveActionGraphicSize;
-  image.AddRepresentation(gfx::ImageSkiaRep(bitmap, scale));
-  image_source->SetIcon(gfx::Image(image));
-
-  // Set text on badge
-  // TODO(petemill): Provide an observer if this value is expected to change
-  // during runtime. At time of implementation, this would only be different
-  // after a restart.
-  auto badge = std::make_unique<IconWithBadgeImageSource::Badge>(
-      profile_->GetPrefs()->GetString(brave_rewards::prefs::kBadgeText),
-      kBadgeTextColor, kBadgeNotificationBG);
-
-  image_source->SetBadge(std::move(badge));
-
-  gfx::ImageSkia icon(
-      gfx::Image(gfx::ImageSkia(std::move(image_source), preferred_size))
-          .AsImageSkia());
-
-  // Use badge-and-icon source for button's image in all states
-  SetImage(views::Button::STATE_NORMAL, icon);
-
-  // Install highlight path generator
-  views::HighlightPathGenerator::Install(
-      this, std::make_unique<ButtonHighlightPathGenerator>());
+  rewards_notification_observation_.Observe(
+      GetRewardsNotificationService(profile_));
 }
 
 BraveRewardsPanelButton::~BraveRewardsPanelButton() = default;
 
-void BraveRewardsPanelButton::Update() {
-  // TODO(zenparsing): Update the badge depending on the current web contents
-  // and the current notification count. This should be called automatically
-  // from BraveActionContainer::Update. If there are notifications, then show
-  // a notification count. Otherwise, if the current web contents URL indicates
-  // a verified publisher, show a checkmark. We also need to listen for events
-  // from the Rewards service: when the notification count changes and when the
-  // publisher info has been updated, we should also call this method.
-}
+void BraveRewardsPanelButton::UpdateImageAndText() {
+  auto badge_info = GetBadgeTextAndBackground();
 
-void BraveRewardsPanelButton::OnWidgetDestroying(views::Widget* widget) {
-  auto* bubble_widget = bubble_manager_.GetBubbleWidget();
-  DCHECK_EQ(bubble_widget, widget);
-  DCHECK(bubble_observation_.IsObservingSource(bubble_widget));
+  auto badge = std::make_unique<IconWithBadgeImageSource::Badge>(
+      std::get<std::string>(badge_info), kBadgeTextColor,
+      std::get<SkColor>(badge_info));
 
-  bubble_observation_.Reset();
-  pressed_lock_.reset();
-}
+  gfx::Size size = GetPreferredSize();
 
-void BraveRewardsPanelButton::OnButtonPressed() {
-  // We only show the default badge text once, so once the button
-  // is clicked then change it back. We consider pressing the button
-  // as an action to 'dismiss' the badge notification.
-  // This cannot be done from the rewards service since it is not
-  // involved in showing the pre-opt-in panel.
+  auto image_source =
+      std::make_unique<BraveActionIconWithBadgeImageSource>(size);
+  image_source->SetIcon(gfx::Image(GetRewardsIcon()));
+  image_source->SetBadge(std::move(badge));
 
-  // TODO(zenparsing): Reconsider this approach
-  profile_->GetPrefs()->SetString(brave_rewards::prefs::kBadgeText, "");
-  ToggleRewardsPanel();
-}
+  gfx::ImageSkia icon_image(std::move(image_source), size);
 
-void BraveRewardsPanelButton::ToggleRewardsPanel() {
-  if (bubble_manager_.GetBubbleWidget()) {
-    bubble_manager_.CloseBubble();
-    return;
-  }
-
-  bubble_manager_.ShowBubble();
-
-  DCHECK(!bubble_observation_.IsObserving());
-  bubble_observation_.Observe(bubble_manager_.GetBubbleWidget());
-
-  pressed_lock_ = button_controller_->TakeLock();
+  SetImage(views::Button::STATE_NORMAL, icon_image);
 }
 
 gfx::Size BraveRewardsPanelButton::CalculatePreferredSize() const {
@@ -179,4 +141,103 @@ BraveRewardsPanelButton::CreateDefaultBorder() const {
   auto border = LabelButton::CreateDefaultBorder();
   border->set_insets(gfx::Insets(0, 0, 0, 0));
   return border;
+}
+
+void BraveRewardsPanelButton::OnWidgetDestroying(views::Widget* widget) {
+  auto* bubble_widget = bubble_manager_.GetBubbleWidget();
+  DCHECK_EQ(bubble_widget, widget);
+  DCHECK(bubble_observation_.IsObservingSource(bubble_widget));
+
+  bubble_observation_.Reset();
+  pressed_lock_.reset();
+}
+
+void BraveRewardsPanelButton::OnNotificationAdded(
+    RewardsNotificationService* service,
+    const RewardsNotificationService::RewardsNotification& notification) {
+  UpdateImageAndText();
+}
+
+void BraveRewardsPanelButton::OnNotificationDeleted(
+    RewardsNotificationService* service,
+    const RewardsNotificationService::RewardsNotification& notification) {
+  UpdateImageAndText();
+}
+
+void BraveRewardsPanelButton::OnPreferencesChanged(const std::string& key) {
+  UpdateImageAndText();
+}
+
+void BraveRewardsPanelButton::ToggleRewardsPanel() {
+  if (bubble_manager_.GetBubbleWidget()) {
+    bubble_manager_.CloseBubble();
+    return;
+  }
+
+  // Clear the default-on-start badge text when the user opens the panel.
+  profile_->GetPrefs()->SetString(brave_rewards::prefs::kBadgeText, "");
+
+  bubble_manager_.ShowBubble();
+
+  DCHECK(!bubble_observation_.IsObserving());
+  bubble_observation_.Observe(bubble_manager_.GetBubbleWidget());
+
+  auto* controller =
+      static_cast<views::MenuButtonController*>(button_controller());
+  pressed_lock_ = controller->TakeLock();
+}
+
+gfx::ImageSkia BraveRewardsPanelButton::GetRewardsIcon() {
+  // Since the BAT icon has color the actual color value here is not relevant,
+  // but |CreateVectorIcon| requires one.
+  auto* theme_provider = GetThemeProvider();
+  DCHECK(theme_provider);
+  SkColor icon_color =
+      theme_provider->GetColor(ThemeProperties::COLOR_TOOLBAR_BUTTON_ICON);
+
+  return gfx::CreateVectorIcon(kBatIcon, kBraveActionGraphicSize, icon_color);
+}
+
+std::pair<std::string, SkColor>
+BraveRewardsPanelButton::GetBadgeTextAndBackground() {
+  // 1. Display the default-on-start Rewards badge text, if specified.
+  std::string text_pref =
+      profile_->GetPrefs()->GetString(brave_rewards::prefs::kBadgeText);
+  if (!text_pref.empty())
+    return {text_pref, kBadgeNotificationBG};
+
+  // 2. Display the number of current notifications, if non-zero.
+  size_t notification_count = GetRewardsNotificationCount();
+  if (notification_count > 0) {
+    std::string count_text = notification_count > 99
+                                 ? "99+"
+                                 : base::NumberToString(notification_count);
+
+    return {count_text, kBadgeNotificationBG};
+  }
+
+  // 3. Display a verified checkmark for verified publishers.
+  if (auto* web_contents = delegate_->GetCurrentWebContents()) {
+    auto& url = web_contents->GetLastCommittedURL();
+    if (url == std::get<GURL>(publisher_verified_)) {
+      if (std::get<bool>(publisher_verified_))
+        return {kVerifiedCheck, kBadgeVerifiedBG};
+    } else {
+      // TODO(zenparsing): Query the rewards service for verified status on
+      // this URL. Unfortunately, the system doesn't really allow this right
+      // now, especially for "media" publishers. For non-media publishers, we
+      // just use the TLD+1 to get the publisher ID. For media publishers, we
+      // rely on content-level scripts (or "legacy" code in bat-native-ledger)
+      // to figure it out. Basically, we don't store the mapping from URL to
+      // publisher ID anywhere. Instead, we store a mapping from tab ID to
+      // publisher ID in the extension. No wonder this thing is so flaky!
+    }
+  }
+
+  return {"", kBadgeNotificationBG};
+}
+
+size_t BraveRewardsPanelButton::GetRewardsNotificationCount() {
+  auto* service = GetRewardsNotificationService(profile_);
+  return service ? service->GetAllNotifications().size() : 0;
 }

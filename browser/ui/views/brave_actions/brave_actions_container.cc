@@ -135,7 +135,7 @@ void BraveActionsContainer::Update() {
     shields_controller_->UpdateState();
 
   if (rewards_panel_button_)
-    rewards_panel_button_->Update();
+    rewards_panel_button_->UpdateImageAndText();
 
   // Only show the separator if we're showing at least one button.
   DCHECK_GT(children().size(), 0ul);

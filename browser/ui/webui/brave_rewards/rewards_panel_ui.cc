@@ -8,6 +8,7 @@
 #include <memory>
 
 // TODO(zenparsing): We need to audit all of these includes
+#include "base/scoped_observation.h"
 #include "brave/browser/brave_rewards/rewards_service_factory.h"
 #include "brave/common/webui_url_constants.h"
 #include "brave/components/brave_rewards/browser/rewards_notification_service.h"
@@ -52,38 +53,35 @@ class MessageHandler : public content::WebUIMessageHandler,
 
   void OnJavascriptAllowed() override {
     if (auto* service = GetRewardsService())
-      service->AddObserver(this);
+      rewards_service_observation_.Observe(service);
 
     if (auto* service = GetRewardsNotificationService())
-      service->AddObserver(this);
+      rewards_notification_service_observation_.Observe(service);
   }
 
   void OnJavascriptDisallowed() override {
-    if (auto* service = GetRewardsService())
-      service->RemoveObserver(this);
-
-    if (auto* service = GetRewardsNotificationService())
-      service->RemoveObserver(this);
+    rewards_service_observation_.Reset();
+    rewards_notification_service_observation_.Reset();
   }
 
   void RegisterMessages() override {
     // Indicates that the page is ready to start receiving notifications from
     // the browser.
     web_ui()->RegisterMessageCallback(
-        "PageReady", base::BindRepeating(&MessageHandler::OnPageReadyMessage,
+        "pageReady", base::BindRepeating(&MessageHandler::HandlePageReady,
                                          base::Unretained(this)));
 
     web_ui()->RegisterMessageCallback(
-        "ShowPanel", base::BindRepeating(&MessageHandler::OnShowPanelMessage,
+        "showPanel", base::BindRepeating(&MessageHandler::HandleShowPanel,
                                          base::Unretained(this)));
 
     web_ui()->RegisterMessageCallback(
-        "HidePanel", base::BindRepeating(&MessageHandler::OnHidePanelMessage,
+        "hidePanel", base::BindRepeating(&MessageHandler::HandleHidePanel,
                                          base::Unretained(this)));
   }
 
  private:
-  void OnPageReadyMessage(const base::ListValue* args) {
+  void HandlePageReady(const base::ListValue* args) {
     AllowJavascript();
 
     if (auto* panel_ui = GetRewardsPanelUI())
@@ -93,13 +91,13 @@ class MessageHandler : public content::WebUIMessageHandler,
     // Do initialization stuff. Start the rewards process? Whatever.
   }
 
-  void OnShowPanelMessage(const base::ListValue* args) {
+  void HandleShowPanel(const base::ListValue* args) {
     if (auto* panel_ui = GetRewardsPanelUI())
       if (auto embedder = panel_ui->embedder())
         embedder->ShowUI();
   }
 
-  void OnHidePanelMessage(const base::ListValue* args) {
+  void HandleHidePanel(const base::ListValue* args) {
     if (auto* panel_ui = GetRewardsPanelUI())
       if (auto embedder = panel_ui->embedder())
         embedder->CloseUI();
@@ -122,6 +120,13 @@ class MessageHandler : public content::WebUIMessageHandler,
 
     return nullptr;
   }
+
+  base::ScopedObservation<RewardsService, RewardsServiceObserver>
+      rewards_service_observation_{this};
+
+  base::ScopedObservation<RewardsNotificationService,
+                          RewardsNotificationServiceObserver>
+      rewards_notification_service_observation_{this};
 };
 
 }  // namespace
