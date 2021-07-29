@@ -3,11 +3,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-package org.chromium.chrome.browser.crypto_wallet;
+package org.chromium.chrome.browser.crypto_wallet.activities;
 
+import android.annotation.SuppressLint;
 import android.os.Bundle;
+import android.view.MenuItem;
+import android.view.MotionEvent;
+import android.view.View;
 import android.widget.RadioGroup;
 import android.widget.TextView;
+
+import androidx.appcompat.widget.Toolbar;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -37,6 +43,10 @@ public class AssetDetailActivity
     protected void triggerLayoutInflation() {
         setContentView(R.layout.activity_asset_detail);
 
+        Toolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+
         TextView assetTitleText = findViewById(R.id.asset_title_text);
         assetTitleText.setText(this.getText(R.string.eth_name));
 
@@ -62,9 +72,38 @@ public class AssetDetailActivity
         });
 
         chartES = findViewById(R.id.line_chart);
-        chartES.setColors(new int[] {0xFF12A378});
+        chartES.setColors(new int[] {getResources().getColor(R.color.wallet_asset_graph_color)});
+        chartES.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            @SuppressLint("ClickableViewAccessibility")
+            public boolean onTouch(View v, MotionEvent event) {
+                SmoothLineChartEquallySpaced chartES = (SmoothLineChartEquallySpaced) v;
+                if (chartES == null) {
+                    return true;
+                }
+                if (event.getAction() == MotionEvent.ACTION_MOVE
+                        || event.getAction() == MotionEvent.ACTION_DOWN) {
+                    chartES.drawLine(event.getRawX());
+                } else if (event.getAction() == MotionEvent.ACTION_UP
+                        || event.getAction() == MotionEvent.ACTION_CANCEL) {
+                    chartES.drawLine(-1);
+                }
+
+                return true;
+            }
+        });
 
         onInitialLayoutInflationComplete();
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case android.R.id.home:
+                finish();
+                return true;
+        }
+        return super.onOptionsItemSelected(item);
     }
 
     @Override

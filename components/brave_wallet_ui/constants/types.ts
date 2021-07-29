@@ -61,6 +61,7 @@ export type PanelTypes =
   | 'send'
   | 'swap'
   | 'apps'
+  | 'accounts'
   | 'networks'
   | 'settings'
   | 'expanded'
@@ -146,6 +147,8 @@ export interface WalletState {
   favoriteApps: AppObjectType[]
   isWalletBackedUp: boolean
   hasIncorrectPassword: boolean
+  selectedAccount: WalletAccountType
+  selectedNetwork: NetworkOptionsType
   accounts: WalletAccountType[]
   walletAccountNames: string[]
   transactions: RPCTransactionType[]
@@ -274,11 +277,33 @@ export interface AddAccountToWalletReturnInfo {
   success: boolean
 }
 
+export interface TokenInfo {
+  contractAddress: string
+  name: string
+  isErc20: boolean
+  isErc721: boolean
+  symbol: string
+  decimals: number
+}
+
+export interface GetTokenByContractReturnInfo {
+  value: TokenInfo | undefined
+}
+export interface GetTokenBySymbolReturnInfo {
+  token: TokenInfo | undefined
+}
+export interface GetAllTokensReturnInfo {
+  tokens: TokenInfo[]
+}
+
 export interface WalletAPIHandler {
   getWalletInfo: () => Promise<WalletInfo>
   lockWallet: () => Promise<void>
   addAccountToWallet: () => Promise<AddAccountToWalletReturnInfo>
   unlockWallet: (password: string) => Promise<UnlockWalletReturnInfo>
+  getTokenByContract: (contract: string) => Promise<GetTokenByContractReturnInfo>
+  getTokenBySymbol: (symbol: string) => Promise<GetTokenBySymbolReturnInfo>
+  getAllTokens: () => Promise<GetAllTokensReturnInfo>
   getAssetPrice: (fromAssets: string[], toAssets: string[]) => Promise<GetAssetPriceReturnInfo>
   getAssetPriceHistory: (asset: string, timeframe: AssetPriceTimeframe) => Promise<GetAssetPriceHistoryReturnObjectInfo>
   addFavoriteApp: (appItem: AppObjectType) => Promise<void>
