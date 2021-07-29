@@ -5,25 +5,36 @@
 import * as React from 'react'
 import * as ReactDOM from 'react-dom'
 
+import { LocaleContext } from '../shared/lib/locale_context'
+
+import { createHost } from './lib/host'
+import { HostContext } from './lib/host_context'
+import { App } from './components/app'
+
 document.addEventListener('DOMContentLoaded', () => {
 
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
-      // This is odd, because the WebUI bubble manager causes the visibility
-      // to go from "visible" to "hidden" immediately, and then when this
-      // message is processed it goes back to "visible" (which will resend this
-      // message).
+      // The WebUI bubble manager can cause the visibility to transition from
+      // "visible" to "hidden" immediately (within the same turn of the event
+      // loop) as the bubble is added to the view heirarchy and then hidden.
       chrome.send('showPanel')
     }
   })
 
+  const host = createHost()
+
   function Root () {
     return (
-      <>Hello world</>
+      <HostContext.Provider value={host}>
+        <LocaleContext.Provider value={host}>
+          <App />
+        </LocaleContext.Provider>
+      </HostContext.Provider>
     )
   }
 
   ReactDOM.render(<Root />, document.getElementById('root'))
 
-  chrome.send('pageReady');
+  chrome.send('pageReady')
 })
