@@ -26,6 +26,7 @@
 #include "content/public/browser/render_frame_host.h"
 #include "content/public/browser/storage_partition.h"
 #include "content/public/browser/web_contents.h"
+#include "content/public/common/content_switches.h"
 #include "content/public/test/browser_test.h"
 #include "content/public/test/test_navigation_observer.h"
 #include "net/base/features.h"
@@ -706,6 +707,67 @@ IN_PROC_BROWSER_TEST_F(EphemeralStorageBrowserTest, NetworkCookiesAreSetIn3p) {
   EXPECT_EQ("", site_b_tab_values.iframe_2.cookies);
 }
 
+IN_PROC_BROWSER_TEST_F(EphemeralStorageBrowserTest, LocalStorageIsShared) {
+  WebContents* site_a_tab1 =
+      LoadURLInNewTab(a_site_ephemeral_storage_with_network_cookies_url_);
+  WebContents* site_a_tab2 = LoadURLInNewTab(a_site_ephemeral_storage_url_);
+
+  SetValuesInFrames(site_a_tab1, "a.com", "from=a.com");
+  ValuesFromFrames site_a_tab1_values = GetValuesFromFrames(site_a_tab1);
+  EXPECT_EQ("a.com", site_a_tab1_values.main_frame.local_storage);
+  EXPECT_EQ("a.com", site_a_tab1_values.iframe_1.local_storage);
+  EXPECT_EQ("a.com", site_a_tab1_values.iframe_2.local_storage);
+
+  EXPECT_EQ("a.com", site_a_tab1_values.main_frame.session_storage);
+  EXPECT_EQ("a.com", site_a_tab1_values.iframe_1.session_storage);
+  EXPECT_EQ("a.com", site_a_tab1_values.iframe_2.session_storage);
+
+  EXPECT_EQ("name=acom_simple; from=a.com",
+            site_a_tab1_values.main_frame.cookies);
+  EXPECT_EQ("name=bcom_simple; from=a.com",
+            site_a_tab1_values.iframe_1.cookies);
+  EXPECT_EQ("name=bcom_simple; from=a.com",
+            site_a_tab1_values.iframe_2.cookies);
+
+  // The second tab is loaded on the same domain, so should see the same
+  // storage for the third-party iframes.
+  ValuesFromFrames site_a_tab2_values = GetValuesFromFrames(site_a_tab2);
+  EXPECT_EQ("a.com", site_a_tab2_values.main_frame.local_storage);
+  EXPECT_EQ("a.com", site_a_tab2_values.iframe_1.local_storage);
+  EXPECT_EQ("a.com", site_a_tab2_values.iframe_2.local_storage);
+
+  EXPECT_EQ(nullptr, site_a_tab2_values.main_frame.session_storage);
+  EXPECT_EQ(nullptr, site_a_tab2_values.iframe_1.session_storage);
+  EXPECT_EQ(nullptr, site_a_tab2_values.iframe_2.session_storage);
+
+  EXPECT_EQ("name=acom_simple; from=a.com",
+            site_a_tab2_values.main_frame.cookies);
+  EXPECT_EQ("name=bcom_simple; from=a.com",
+            site_a_tab2_values.iframe_1.cookies);
+  EXPECT_EQ("name=bcom_simple; from=a.com",
+            site_a_tab2_values.iframe_2.cookies);
+
+  // Set values in the first tab. The second tab should see changes.
+  SetValuesInFrames(site_a_tab1, "a.com-modify", "from=a.com-modify");
+  {
+    ValuesFromFrames site_a_tab2_values = GetValuesFromFrames(site_a_tab2);
+    EXPECT_EQ("a.com-modify", site_a_tab2_values.main_frame.local_storage);
+    EXPECT_EQ("a.com-modify", site_a_tab2_values.iframe_1.local_storage);
+    EXPECT_EQ("a.com-modify", site_a_tab2_values.iframe_2.local_storage);
+
+    EXPECT_EQ(nullptr, site_a_tab2_values.main_frame.session_storage);
+    EXPECT_EQ(nullptr, site_a_tab2_values.iframe_1.session_storage);
+    EXPECT_EQ(nullptr, site_a_tab2_values.iframe_2.session_storage);
+
+    EXPECT_EQ("name=acom_simple; from=a.com-modify",
+              site_a_tab2_values.main_frame.cookies);
+    EXPECT_EQ("name=bcom_simple; from=a.com-modify",
+              site_a_tab2_values.iframe_1.cookies);
+    EXPECT_EQ("name=bcom_simple; from=a.com-modify",
+              site_a_tab2_values.iframe_2.cookies);
+  }
+}
+
 IN_PROC_BROWSER_TEST_F(EphemeralStorageBrowserTest,
                        FirstPartyNestedInThirdParty) {
   auto* web_contents = browser()->tab_strip_model()->GetActiveWebContents();
@@ -799,6 +861,63 @@ IN_PROC_BROWSER_TEST_F(EphemeralStorageKeepAliveDisabledBrowserTest,
   EXPECT_EQ(nullptr, values_after.iframe_2.session_storage);
 
   EXPECT_EQ("name=acom_simple; from=a.com", values_after.main_frame.cookies);
+  EXPECT_EQ("", values_after.iframe_1.cookies);
+  EXPECT_EQ("", values_after.iframe_2.cookies);
+}
+
+class EphemeralStorageNoSiteIsolationAndKeepAliveDisabledBrowserTest
+    : public EphemeralStorageKeepAliveDisabledBrowserTest {
+ public:
+  EphemeralStorageNoSiteIsolationAndKeepAliveDisabledBrowserTest() {}
+
+  void SetUpCommandLine(base::CommandLine* command_line) override {
+    EphemeralStorageKeepAliveDisabledBrowserTest::SetUpCommandLine(
+        command_line);
+    command_line->AppendSwitch(switches::kDisableSiteIsolation);
+  }
+};
+
+// Test for Android-specific bug when a renderer reuses CachedStorageArea in the
+// same process without a proper cleanup.
+IN_PROC_BROWSER_TEST_F(
+    EphemeralStorageNoSiteIsolationAndKeepAliveDisabledBrowserTest,
+    RenderInitiatedNavigationClearsEphemeralStorage) {
+  ui_test_utils::NavigateToURL(browser(), a_site_ephemeral_storage_url_);
+  auto* web_contents = browser()->tab_strip_model()->GetActiveWebContents();
+
+  SetValuesInFrames(web_contents, "a.com value", "from=a.com");
+
+  ValuesFromFrames values_before = GetValuesFromFrames(web_contents);
+  EXPECT_EQ("a.com value", values_before.main_frame.local_storage);
+  EXPECT_EQ("a.com value", values_before.iframe_1.local_storage);
+  EXPECT_EQ("a.com value", values_before.iframe_2.local_storage);
+
+  EXPECT_EQ("a.com value", values_before.main_frame.session_storage);
+  EXPECT_EQ("a.com value", values_before.iframe_1.session_storage);
+  EXPECT_EQ("a.com value", values_before.iframe_2.session_storage);
+
+  EXPECT_EQ("from=a.com", values_before.main_frame.cookies);
+  EXPECT_EQ("from=a.com", values_before.iframe_1.cookies);
+  EXPECT_EQ("from=a.com", values_before.iframe_2.cookies);
+
+  // Navigate away and then navigate back to the original site using
+  // renderer-initiated navigations.
+  ASSERT_TRUE(content::NavigateToURLFromRenderer(
+      web_contents, b_site_ephemeral_storage_url_));
+  ASSERT_TRUE(content::NavigateToURLFromRenderer(
+      web_contents, a_site_ephemeral_storage_url_));
+
+  // 3p storages should be empty.
+  ValuesFromFrames values_after = GetValuesFromFrames(web_contents);
+  EXPECT_EQ("a.com value", values_after.main_frame.local_storage);
+  EXPECT_EQ(nullptr, values_after.iframe_1.local_storage);
+  EXPECT_EQ(nullptr, values_after.iframe_2.local_storage);
+
+  EXPECT_EQ("a.com value", values_after.main_frame.session_storage);
+  EXPECT_EQ(nullptr, values_after.iframe_1.session_storage);
+  EXPECT_EQ(nullptr, values_after.iframe_2.session_storage);
+
+  EXPECT_EQ("from=a.com", values_after.main_frame.cookies);
   EXPECT_EQ("", values_after.iframe_1.cookies);
   EXPECT_EQ("", values_after.iframe_2.cookies);
 }

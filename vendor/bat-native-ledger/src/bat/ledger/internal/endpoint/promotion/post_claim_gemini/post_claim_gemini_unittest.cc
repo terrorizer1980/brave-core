@@ -42,11 +42,11 @@ class PostClaimGeminiTest : public testing::Test {
   }
 
   void SetUp() override {
-    const std::string wallet = R"({
+    const std::string wallet = FakeEncryption::Base64EncryptString(R"({
       "payment_id":"fa5dea51-6af4-44ca-801b-07b6df3dcfe4",
       "recovery_seed":"AN6DLuI2iZzzDxpzywf+IKmK1nzFRarNswbaIDI3pQg="
-    })";
-    ON_CALL(*mock_ledger_client_, GetEncryptedStringState(state::kWalletBrave))
+    })");
+    ON_CALL(*mock_ledger_client_, GetStringState(state::kWalletBrave))
         .WillByDefault(testing::Return(wallet));
   }
 };
@@ -62,7 +62,7 @@ TEST_F(PostClaimGeminiTest, ServerOK) {
             callback(response);
           }));
 
-  claim_->Request("mock_linking_info", [](const type::Result result) {
+  claim_->Request("mock_linking_info", "id", [](const type::Result result) {
     EXPECT_EQ(result, type::Result::LEDGER_OK);
   });
 }
@@ -78,7 +78,7 @@ TEST_F(PostClaimGeminiTest, ServerError400) {
             callback(response);
           }));
 
-  claim_->Request("mock_linking_info", [](const type::Result result) {
+  claim_->Request("mock_linking_info", "id", [](const type::Result result) {
     EXPECT_EQ(result, type::Result::LEDGER_ERROR);
   });
 }
@@ -94,7 +94,7 @@ TEST_F(PostClaimGeminiTest, ServerError404) {
             callback(response);
           }));
 
-  claim_->Request("mock_linking_info", [](const type::Result result) {
+  claim_->Request("mock_linking_info", "id", [](const type::Result result) {
     EXPECT_EQ(result, type::Result::NOT_FOUND);
   });
 }
@@ -110,7 +110,7 @@ TEST_F(PostClaimGeminiTest, ServerError409) {
             callback(response);
           }));
 
-  claim_->Request("mock_linking_info", [](const type::Result result) {
+  claim_->Request("mock_linking_info", "id", [](const type::Result result) {
     EXPECT_EQ(result, type::Result::ALREADY_EXISTS);
   });
 }
@@ -126,7 +126,7 @@ TEST_F(PostClaimGeminiTest, ServerError500) {
             callback(response);
           }));
 
-  claim_->Request("mock_linking_info", [](const type::Result result) {
+  claim_->Request("mock_linking_info", "id", [](const type::Result result) {
     EXPECT_EQ(result, type::Result::LEDGER_ERROR);
   });
 }
@@ -142,7 +142,7 @@ TEST_F(PostClaimGeminiTest, ServerErrorRandom) {
             callback(response);
           }));
 
-  claim_->Request("mock_linking_info", [](const type::Result result) {
+  claim_->Request("mock_linking_info", "id", [](const type::Result result) {
     EXPECT_EQ(result, type::Result::LEDGER_ERROR);
   });
 }
