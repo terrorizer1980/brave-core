@@ -4,12 +4,24 @@
 
 import * as React from 'react'
 
+import { LocaleContext } from '../../shared/lib/locale_context'
+import { HostContext } from '../lib/host_context'
+import { Host } from '../lib/interfaces'
 import { WithThemeVariables } from '../../shared/components/with_theme_variables'
+import { Panel } from './panel'
 
-export function App () {
+interface Props {
+  host: Host
+}
+
+export function App (props: Props) {
   return (
-    <WithThemeVariables>
-      Hello world
-    </WithThemeVariables>
+    <HostContext.Provider value={props.host}>
+      <LocaleContext.Provider value={props.host}>
+        <WithThemeVariables>
+          <Panel />
+        </WithThemeVariables>
+      </LocaleContext.Provider>
+    </HostContext.Provider>
   )
 }

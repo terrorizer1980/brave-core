@@ -7,6 +7,17 @@ import { loadTimeData } from '../../../../common/loadTimeData'
 import { Host } from './interfaces'
 
 export function createHost (): Host {
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      // The WebUI bubble manager can cause the visibility to transition from
+      // "visible" to "hidden" immediately (within the same turn of the event
+      // loop) as the bubble is added to the view heirarchy and then hidden.
+      chrome.send('showPanel')
+    }
+  })
+
+  chrome.send('pageReady')
+
   return {
     getString (key: string) {
       return loadTimeData.getString(key)

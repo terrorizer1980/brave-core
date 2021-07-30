@@ -6,9 +6,10 @@ import * as React from 'react'
 
 import {
   ExternalWallet,
-  ExternalWalletAction,
   getExternalWalletProviderName
 } from '../../lib/external_wallet'
+
+import { ExternalWalletAction } from './external_wallet_action'
 
 import { LocaleContext, formatMessage } from '../../lib/locale_context'
 import { GeminiIcon } from '../icons/gemini_icon'
