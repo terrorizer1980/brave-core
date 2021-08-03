@@ -10,6 +10,7 @@
 
 @class BraveBookmarksAPI;
 @class BraveHistoryAPI;
+@class BravePasswordAPI;
 @class BraveSyncProfileServiceIOS;
 @protocol BraveWalletKeyringController;
 @protocol BraveWalletAssetRatioController;
@@ -29,6 +30,8 @@ OBJC_EXPORT
 @property(nullable, nonatomic, readonly) BraveBookmarksAPI* bookmarksAPI;
 
 @property(nullable, nonatomic, readonly) BraveHistoryAPI* historyAPI;
+
+@property(nullable, nonatomic, readonly) BravePasswordAPI* passwordAPI;
 
 @property(nullable, nonatomic, readonly)
     BraveSyncProfileServiceIOS* syncProfileService;
