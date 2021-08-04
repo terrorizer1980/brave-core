@@ -7,7 +7,7 @@ import * as React from 'react'
 import { connect } from 'react-redux'
 import { bindActionCreators, Dispatch } from 'redux'
 import { ConnectWithSite, ConnectedPanel, Panel, WelcomePanel } from '../components/extension'
-import { Send, SelectAsset, SelectAccount, SelectNetwork } from '../components/buy-send-swap/'
+import { Send, Buy, SelectAsset, SelectAccount, SelectNetwork } from '../components/buy-send-swap/'
 import { AppList } from '../components/shared'
 import { filterAppList } from '../utils/filter-app-list'
 import { ScrollContainer, StyledExtensionWrapper, SelectContainer } from '../stories/style'
@@ -25,12 +25,14 @@ import {
   WalletAccountType,
   BuySendSwapViewTypes,
   AssetOptionType,
-  NetworkOptionsType
+  Network
 } from '../constants/types'
 import { AppsList } from '../options/apps-list-options'
 import LockPanel from '../components/extension/lock-panel'
 import { AssetOptions } from '../options/asset-options'
+import { WyreAssetOptions } from '../options/wyre-asset-options'
 import { NetworkOptions } from '../options/network-options'
+import { BuyAssetUrl } from '../utils/buy-asset-url'
 
 type Props = {
   panel: PanelState
@@ -75,9 +77,22 @@ function Container (props: Props) {
   const [filteredAppsList, setFilteredAppsList] = React.useState<AppsListType[]>(AppsList)
   const [walletConnected, setWalletConnected] = React.useState<boolean>(true)
   const [selectedAsset, setSelectedAsset] = React.useState<AssetOptionType>(AssetOptions[0])
+  const [selectedWyreAsset, setSelectedWyreAsset] = React.useState<AssetOptionType>(WyreAssetOptions[0])
   const [showSelectAsset, setShowSelectAsset] = React.useState<boolean>(false)
   const [toAddress, setToAddress] = React.useState('')
   const [sendAmount, setSendAmount] = React.useState('')
+  const [buyAmount, setBuyAmount] = React.useState('')
+
+  const onSetBuyAmount = (value: string) => {
+    setBuyAmount(value)
+  }
+
+  const onSubmitBuy = () => {
+    const url = BuyAssetUrl(selectedNetwork, selectedWyreAsset, selectedAccount, buyAmount)
+    if (url) {
+      chrome.tabs.create({ url: url })
+    }
+  }
 
   const onChangeSendView = (view: BuySendSwapViewTypes) => {
     if (view === 'assets') {
@@ -90,7 +105,11 @@ function Container (props: Props) {
   }
 
   const onSelectAsset = (asset: AssetOptionType) => () => {
-    setSelectedAsset(asset)
+    if (selectedPanel === 'buy') {
+      setSelectedWyreAsset(asset)
+    } else {
+      setSelectedAsset(asset)
+    }
     setShowSelectAsset(false)
   }
 
@@ -140,13 +159,20 @@ function Container (props: Props) {
       setReadyToConnect(true)
     } else {
       onSubmit()
+      setSelectedAccounts([])
+      setReadyToConnect(false)
     }
   }
   const secondaryAction = () => {
     if (readyToConnect) {
       setReadyToConnect(false)
     } else {
-      props.walletPanelActions.cancelConnectToSite()
+      props.walletPanelActions.cancelConnectToSite({
+        selectedAccounts,
+        siteToConnectTo: props.panel.connectedSiteOrigin
+      })
+      setSelectedAccounts([])
+      setReadyToConnect(false)
     }
   }
   const unlockWallet = () => {
@@ -194,7 +220,7 @@ function Container (props: Props) {
     props.walletPanelActions.navigateTo('main')
   }
 
-  const onSelectNetwork = (network: NetworkOptionsType) => () => {
+  const onSelectNetwork = (network: Network) => () => {
     props.walletActions.selectNetwork(network)
     props.walletPanelActions.navigateTo('main')
   }
@@ -231,7 +257,7 @@ function Container (props: Props) {
     return (
       <SelectContainer>
         <SelectAsset
-          assets={AssetOptions}
+          assets={selectedPanel === 'buy' ? WyreAssetOptions : AssetOptions}
           onSelectAsset={onSelectAsset}
           onBack={onHideSelectAsset}
         />
@@ -286,12 +312,15 @@ function Container (props: Props) {
   }
 
   if (selectedPanel === 'connectWithSite') {
+    const accountsToConnect = props.wallet.accounts.filter(
+      (account) => props.panel.connectingAccounts.includes(account.address.toLowerCase())
+    )
     return (
       <StyledExtensionWrapper>
         <ConnectWithSite
           siteURL={connectedSiteOrigin}
           isReady={readyToConnect}
-          accounts={accounts}
+          accounts={accountsToConnect}
           primaryAction={primaryAction}
           secondaryAction={secondaryAction}
           selectAccount={selectAccount}
@@ -319,6 +348,28 @@ function Container (props: Props) {
               selectedAssetAmount={sendAmount}
               selectedAssetBalance='0'
               toAddress={toAddress}
+            />
+          </SendWrapper>
+        </Panel>
+      </StyledExtensionWrapper>)
+  }
+
+  if (selectedPanel === 'buy') {
+    return (
+      <StyledExtensionWrapper>
+        <Panel
+          navAction={navigateTo}
+          title={panelTitle}
+          useSearch={false}
+        >
+          <SendWrapper>
+            <Buy
+              onChangeBuyView={onChangeSendView}
+              onInputChange={onSetBuyAmount}
+              onSubmit={onSubmitBuy}
+              selectedAsset={selectedWyreAsset}
+              buyAmount={buyAmount}
+              selectedNetwork={selectedNetwork}
             />
           </SendWrapper>
         </Panel>

@@ -30,18 +30,19 @@ import {
   WalletPageState,
   AssetPriceTimeframe,
   AssetOptionType,
-  NetworkOptionsType,
   OrderTypes,
   SlippagePresetObjectType,
   ExpirationPresetObjectType,
   ToOrFromType,
-  WalletAccountType
+  WalletAccountType,
+  Network
 } from '../constants/types'
 // import { NavOptions } from '../options/side-nav-options'
 import BuySendSwap from '../stories/screens/buy-send-swap'
 import Onboarding from '../stories/screens/onboarding'
 import BackupWallet from '../stories/screens/backup-wallet'
 import { formatePrices } from '../utils/format-prices'
+import { BuyAssetUrl } from '../utils/buy-asset-url'
 import { convertMojoTimeToJS } from '../utils/mojo-time'
 import { AssetOptions } from '../options/asset-options'
 import { SlippagePresetOptions } from '../options/slippage-preset-options'
@@ -79,7 +80,8 @@ function Container (props: Props) {
     selectedAssetPriceHistory,
     portfolioPriceHistory,
     userAssets,
-    isFetchingPriceHistory
+    isFetchingPriceHistory,
+    setupStillInProgress
   } = props.page
 
   // const [view, setView] = React.useState<NavTypes>('crypto')
@@ -87,6 +89,7 @@ function Container (props: Props) {
   const [showAddModal, setShowAddModal] = React.useState<boolean>(false)
   const [exchangeRate, setExchangeRate] = React.useState('')
   const [toAddress, setToAddress] = React.useState('')
+  const [buyAmount, setBuyAmount] = React.useState('')
   const [sendAmount, setSendAmount] = React.useState('')
   const [fromAmount, setFromAmount] = React.useState('')
   const [toAmount, setToAmount] = React.useState('')
@@ -96,6 +99,10 @@ function Container (props: Props) {
 
   const onSetToAddress = (value: string) => {
     setToAddress(value)
+  }
+
+  const onSetBuyAmount = (value: string) => {
+    setBuyAmount(value)
   }
 
   const onSetFromAmount = (value: string) => {
@@ -141,7 +148,7 @@ function Container (props: Props) {
     props.walletActions.selectAccount(account)
   }
 
-  const onSelectNetwork = (network: NetworkOptionsType) => {
+  const onSelectNetwork = (network: Network) => {
     props.walletActions.selectNetwork(network)
   }
 
@@ -291,9 +298,16 @@ function Container (props: Props) {
   }
 
   const onCreateAccount = (name: string) => {
-    const created = props.walletPageActions.addAccountToWallet({ accountName: name })
+    const created = props.walletPageActions.addAccount({ accountName: name })
     if (created) {
       onToggleAddModal()
+    }
+  }
+
+  const onSubmitBuy = (asset: AssetOptionType) => {
+    const url = BuyAssetUrl(selectedNetwork, asset, selectedAccount, buyAmount)
+    if (url) {
+      window.open(url, '_blank')
     }
   }
 
@@ -323,7 +337,7 @@ function Container (props: Props) {
   }
 
   const renderWallet = React.useMemo(() => {
-    if (!isWalletCreated) {
+    if (!isWalletCreated || setupStillInProgress) {
       return (
         <Onboarding
           recoveryPhrase={recoveryPhrase}
@@ -412,7 +426,7 @@ function Container (props: Props) {
           </div>
         )} */}
       </WalletSubViewLayout>
-      {isWalletCreated && !isWalletLocked &&
+      {(isWalletCreated && !setupStillInProgress) && !isWalletLocked &&
         <WalletWidgetStandIn>
           <BuySendSwap
             accounts={accounts}
@@ -422,6 +436,7 @@ function Container (props: Props) {
             selectedNetwork={selectedNetwork}
             selectedAccount={selectedAccount}
             exchangeRate={exchangeRate}
+            buyAmount={buyAmount}
             sendAmount={sendAmount}
             fromAmount={fromAmount}
             fromAssetBalance='0'
@@ -430,6 +445,7 @@ function Container (props: Props) {
             orderExpiration={orderExpiration}
             slippageTolerance={slippageTolerance}
             toAddress={toAddress}
+            onSetBuyAmount={onSetBuyAmount}
             onSetToAddress={onSetToAddress}
             onSelectExpiration={onSelectExpiration}
             onSelectPresetAmount={onSelectPresetAmount}
@@ -440,6 +456,7 @@ function Container (props: Props) {
             onSetToAmount={onSetToAmount}
             onSubmitSwap={onSubmitSwap}
             onSubmitSend={onSubmitSend}
+            onSubmitBuy={onSubmitBuy}
             flipSwapAssets={flipSwapAssets}
             onSelectNetwork={onSelectNetwork}
             onSelectAccount={onSelectAccount}

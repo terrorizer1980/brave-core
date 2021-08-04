@@ -8,12 +8,13 @@
 #include "base/command_line.h"
 #include "base/feature_list.h"
 #include "brave/browser/brave_ads/ads_tab_helper.h"
+#include "brave/browser/brave_rewards/rewards_tab_helper.h"
 #include "brave/browser/brave_shields/brave_shields_web_contents_observer.h"
 #include "brave/browser/brave_stats/brave_stats_tab_helper.h"
 #include "brave/browser/ephemeral_storage/ephemeral_storage_tab_helper.h"
 #include "brave/browser/ui/bookmark/brave_bookmark_tab_helper.h"
 #include "brave/components/brave_perf_predictor/browser/buildflags.h"
-#include "brave/components/brave_rewards/browser/buildflags/buildflags.h"
+#include "brave/components/brave_wallet/common/buildflags/buildflags.h"
 #include "brave/components/brave_wayback_machine/buildflags.h"
 #include "brave/components/greaselion/browser/buildflags/buildflags.h"
 #include "brave/components/ipfs/buildflags/buildflags.h"
@@ -31,10 +32,6 @@
 #if defined(OS_ANDROID)
 #include "brave/browser/android/preferences/background_video_playback_tab_helper.h"
 #include "brave/browser/android/preferences/website/desktop_mode_tab_helper.h"
-#endif
-
-#if BUILDFLAG(BRAVE_REWARDS_ENABLED)
-#include "brave/browser/brave_rewards/rewards_tab_helper.h"
 #endif
 
 #if BUILDFLAG(ENABLE_WIDEVINE)
@@ -63,6 +60,10 @@
 #include "brave/browser/ipfs/ipfs_tab_helper.h"
 #endif
 
+#if BUILDFLAG(BRAVE_WALLET_ENABLED)
+#include "brave/browser/brave_wallet/brave_wallet_tab_helper.h"
+#endif
+
 namespace brave {
 
 void AttachTabHelpers(content::WebContents* web_contents) {
@@ -80,9 +81,7 @@ void AttachTabHelpers(content::WebContents* web_contents) {
   BraveBookmarkTabHelper::CreateForWebContents(web_contents);
 #endif
 
-#if BUILDFLAG(BRAVE_REWARDS_ENABLED)
   brave_rewards::RewardsTabHelper::CreateForWebContents(web_contents);
-#endif
 
 #if BUILDFLAG(ENABLE_WIDEVINE)
   BraveDrmTabHelper::CreateForWebContents(web_contents);
@@ -119,6 +118,10 @@ void AttachTabHelpers(content::WebContents* web_contents) {
     ephemeral_storage::EphemeralStorageTabHelper::CreateForWebContents(
         web_contents);
   }
+
+#if BUILDFLAG(BRAVE_WALLET_ENABLED)
+  brave_wallet::BraveWalletTabHelper::CreateForWebContents(web_contents);
+#endif
 }
 
 }  // namespace brave

@@ -10,6 +10,7 @@ import {
 import { AppList } from '../components/shared'
 import {
   Send,
+  Buy,
   SelectAsset,
   SelectNetwork,
   SelectAccount
@@ -21,11 +22,13 @@ import {
   AppsListType,
   AssetOptionType,
   BuySendSwapViewTypes,
-  NetworkOptionsType
+  Network
 } from '../constants/types'
 import { AppsList } from '../options/apps-list-options'
 import { NetworkOptions } from '../options/network-options'
+import { WyreAssetOptions } from '../options/wyre-asset-options'
 import { filterAppList } from '../utils/filter-app-list'
+import { BuyAssetUrl } from '../utils/buy-asset-url'
 import LockPanel from '../components/extension/lock-panel'
 import {
   StyledExtensionWrapper,
@@ -142,11 +145,24 @@ export const _ConnectedPanel = (args: { locked: boolean }) => {
   const [filteredAppsList, setFilteredAppsList] = React.useState<AppsListType[]>(AppsList)
   const [walletConnected, setWalletConnected] = React.useState<boolean>(true)
   const [hasPasswordError, setHasPasswordError] = React.useState<boolean>(false)
-  const [selectedNetwork, setSelectedNetwork] = React.useState<NetworkOptionsType>(NetworkOptions[0])
+  const [selectedNetwork, setSelectedNetwork] = React.useState<Network>(Network.Mainnet)
+  const [selectedWyreAsset, setSelectedWyreAsset] = React.useState<AssetOptionType>(WyreAssetOptions[0])
   const [selectedAsset, setSelectedAsset] = React.useState<AssetOptionType>(AssetOptions[0])
   const [showSelectAsset, setShowSelectAsset] = React.useState<boolean>(false)
   const [toAddress, setToAddress] = React.useState('')
   const [fromAmount, setFromAmount] = React.useState('')
+  const [buyAmount, setBuyAmount] = React.useState('')
+
+  const onSetBuyAmount = (value: string) => {
+    setBuyAmount(value)
+  }
+
+  const onSubmitBuy = () => {
+    const url = BuyAssetUrl(selectedNetwork, selectedWyreAsset, selectedAccount, buyAmount)
+    if (url) {
+      window.open(url, '_blank')
+    }
+  }
 
   const onChangeSendView = (view: BuySendSwapViewTypes) => {
     if (view === 'assets') {
@@ -158,7 +174,7 @@ export const _ConnectedPanel = (args: { locked: boolean }) => {
     setSelectedPanel('main')
   }
 
-  const onSelectNetwork = (network: NetworkOptionsType) => () => {
+  const onSelectNetwork = (network: Network) => () => {
     setSelectedNetwork(network)
     setSelectedPanel('main')
   }
@@ -173,7 +189,11 @@ export const _ConnectedPanel = (args: { locked: boolean }) => {
   }
 
   const onSelectAsset = (asset: AssetOptionType) => () => {
-    setSelectedAsset(asset)
+    if (selectedPanel === 'buy') {
+      setSelectedWyreAsset(asset)
+    } else {
+      setSelectedAsset(asset)
+    }
     setShowSelectAsset(false)
   }
 
@@ -322,6 +342,16 @@ export const _ConnectedPanel = (args: { locked: boolean }) => {
                         selectedAssetAmount={fromAmount}
                         selectedAssetBalance={selectedAccount.balance.toString()}
                         toAddress={toAddress}
+                      />
+                    }
+                    {selectedPanel === 'buy' &&
+                      <Buy
+                        onChangeBuyView={onChangeSendView}
+                        onInputChange={onSetBuyAmount}
+                        onSubmit={onSubmitBuy}
+                        selectedAsset={selectedWyreAsset}
+                        buyAmount={buyAmount}
+                        selectedNetwork={selectedNetwork}
                       />
                     }
                   </ScrollContainer>

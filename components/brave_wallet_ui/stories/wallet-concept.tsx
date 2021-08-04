@@ -14,18 +14,17 @@ import {
   AssetOptionType,
   AssetPriceInfo,
   RPCResponseType,
-  NetworkOptionsType,
   OrderTypes,
   UserAccountType,
   SlippagePresetObjectType,
   ExpirationPresetObjectType,
-  ToOrFromType
+  ToOrFromType,
+  Network
 } from '../constants/types'
 import Onboarding from './screens/onboarding'
 import BackupWallet from './screens/backup-wallet'
 // import { NavOptions } from '../options/side-nav-options'
 import { AssetOptions } from '../options/asset-options'
-import { NetworkOptions } from '../options/network-options'
 import { SlippagePresetOptions } from '../options/slippage-preset-options'
 import { ExpirationPresetOptions } from '../options/expiration-preset-options'
 import BuySendSwap from './screens/buy-send-swap'
@@ -35,6 +34,7 @@ import { CurrentPriceMockData } from './mock-data/current-price-data'
 import { PriceHistoryMockData } from './mock-data/price-history-data'
 import { mockUserWalletPreferences } from './mock-data/user-wallet-preferences'
 import { formatePrices } from '../utils/format-prices'
+import { BuyAssetUrl } from '../utils/buy-asset-url'
 import locale from '../constants/locale'
 export default {
   title: 'Wallet/Desktop',
@@ -57,7 +57,7 @@ export const _DesktopWalletConcept = (args: { onboarding: boolean, locked: boole
   const [selectedTimeline, setSelectedTimeline] = React.useState<AssetPriceTimeframe>(AssetPriceTimeframe.OneDay)
   const [selectedAssetPriceHistory, setSelectedAssetPriceHistory] = React.useState<PriceDataObjectType[]>(PriceHistoryMockData.slice(15, 20))
   const [selectedAsset, setSelectedAsset] = React.useState<AssetOptionType>()
-  const [selectedNetwork, setSelectedNetwork] = React.useState<NetworkOptionsType>(NetworkOptions[0])
+  const [selectedNetwork, setSelectedNetwork] = React.useState<Network>(Network.Mainnet)
   const [selectedAccount, setSelectedAccount] = React.useState<UserAccountType>(mockUserAccounts[0])
   const [showAddModal, setShowAddModal] = React.useState<boolean>(false)
   const [fromAsset, setFromAsset] = React.useState<AssetOptionType>(AssetOptions[0])
@@ -67,6 +67,7 @@ export const _DesktopWalletConcept = (args: { onboarding: boolean, locked: boole
   const [slippageTolerance, setSlippageTolerance] = React.useState<SlippagePresetObjectType>(SlippagePresetOptions[0])
   const [orderExpiration, setOrderExpiration] = React.useState<ExpirationPresetObjectType>(ExpirationPresetOptions[0])
   const [toAddress, setToAddress] = React.useState('')
+  const [buyAmount, setBuyAmount] = React.useState('')
   const [sendAmount, setSendAmount] = React.useState('')
   const [fromAmount, setFromAmount] = React.useState('')
   const [toAmount, setToAmount] = React.useState('')
@@ -306,7 +307,7 @@ export const _DesktopWalletConcept = (args: { onboarding: boolean, locked: boole
     setShowAddModal(!showAddModal)
   }
 
-  const onSelectNetwork = (network: NetworkOptionsType) => {
+  const onSelectNetwork = (network: Network) => {
     setSelectedNetwork(network)
   }
 
@@ -325,6 +326,13 @@ export const _DesktopWalletConcept = (args: { onboarding: boolean, locked: boole
   const flipSwapAssets = () => {
     setFromAsset(toAsset)
     setToAsset(fromAsset)
+  }
+
+  const onSubmitBuy = (asset: AssetOptionType) => {
+    const url = BuyAssetUrl(selectedNetwork, asset, selectedAccount, buyAmount)
+    if (url) {
+      window.open(url, '_blank')
+    }
   }
 
   const onSubmitSwap = () => {
@@ -379,6 +387,10 @@ export const _DesktopWalletConcept = (args: { onboarding: boolean, locked: boole
   const onSetExchangeRate = (value: string) => {
     setExchangeRate(value)
     calculateToAmount(Number(value), false)
+  }
+
+  const onSetBuyAmount = (value: string) => {
+    setBuyAmount(value)
   }
 
   const onSetSendAmount = (value: string) => {
@@ -486,12 +498,15 @@ export const _DesktopWalletConcept = (args: { onboarding: boolean, locked: boole
             accounts={mockUserAccounts}
             selectedNetwork={selectedNetwork}
             selectedAccount={selectedAccount}
+            buyAmount={buyAmount}
             sendAmount={sendAmount}
             fromAmount={fromAmount}
             toAmount={toAmount}
             fromAssetBalance={fromAssetBalance}
             toAssetBalance={toAssetBalance}
             toAddress={toAddress}
+            onSubmitBuy={onSubmitBuy}
+            onSetBuyAmount={onSetBuyAmount}
             onSetSendAmount={onSetSendAmount}
             onSetToAddress={onSetToAddress}
             onSetFromAmount={onSetFromAmount}

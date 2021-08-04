@@ -27,7 +27,7 @@
 #include "brave/common/pref_names.h"
 #include "brave/common/webui_url_constants.h"
 #include "brave/components/binance/browser/buildflags/buildflags.h"
-#include "brave/components/brave_rewards/browser/buildflags/buildflags.h"
+#include "brave/components/brave_rewards/browser/rewards_protocol_handler.h"
 #include "brave/components/brave_search/browser/brave_search_default_host.h"
 #include "brave/components/brave_search/browser/brave_search_default_host_private.h"
 #include "brave/components/brave_search/browser/brave_search_fallback_host.h"
@@ -111,10 +111,6 @@ using extensions::ChromeContentBrowserClientExtensionsPart;
 
 #if BUILDFLAG(DECENTRALIZED_DNS_ENABLED)
 #include "brave/components/decentralized_dns/decentralized_dns_navigation_throttle.h"
-#endif
-
-#if BUILDFLAG(BRAVE_REWARDS_ENABLED)
-#include "brave/components/brave_rewards/browser/rewards_protocol_handler.h"
 #endif
 
 #if BUILDFLAG(ENABLE_TOR)
@@ -206,7 +202,7 @@ void BindCosmeticFiltersResources(
 void MaybeBindBraveWalletProvider(
     content::RenderFrameHost* const frame_host,
     mojo::PendingReceiver<brave_wallet::mojom::BraveWalletProvider> receiver) {
-  auto* rpc_controller = brave_wallet::RpcControllerFactory::GetForContext(
+  auto rpc_controller = brave_wallet::RpcControllerFactory::GetForContext(
       frame_host->GetBrowserContext());
 
   if (!rpc_controller)
@@ -216,14 +212,14 @@ void MaybeBindBraveWalletProvider(
       content::WebContents::FromRenderFrameHost(frame_host);
   mojo::MakeSelfOwnedReceiver(
       std::make_unique<brave_wallet::BraveWalletProviderImpl>(
-          rpc_controller,
+          std::move(rpc_controller),
 #if defined(OS_ANDROID)
           std::make_unique<
               brave_wallet::BraveWalletProviderDelegateImplAndroid>(
 #else
           std::make_unique<brave_wallet::BraveWalletProviderDelegateImpl>(
 #endif
-              web_contents)),
+              web_contents, frame_host)),
       std::move(receiver));
 }
 #endif
@@ -372,13 +368,11 @@ bool BraveContentBrowserClient::HandleExternalProtocol(
   }
 #endif
 
-#if BUILDFLAG(BRAVE_REWARDS_ENABLED)
   if (brave_rewards::IsRewardsProtocol(url)) {
     brave_rewards::HandleRewardsProtocol(url, std::move(web_contents_getter),
                                          page_transition, has_user_gesture);
     return true;
   }
-#endif
 
 #if BUILDFLAG(BINANCE_ENABLED)
   if (binance::IsBinanceProtocol(url)) {

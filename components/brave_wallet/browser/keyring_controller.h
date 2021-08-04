@@ -16,6 +16,7 @@
 #include "components/keyed_service/core/keyed_service.h"
 #include "mojo/public/cpp/bindings/pending_remote.h"
 #include "mojo/public/cpp/bindings/receiver_set.h"
+#include "mojo/public/cpp/bindings/remote_set.h"
 
 class PrefService;
 
@@ -46,6 +47,7 @@ class KeyringController : public KeyedService, public mojom::KeyringController {
   static void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* prefs);
 
   mojo::PendingRemote<mojom::KeyringController> MakeRemote();
+  void Bind(mojo::PendingReceiver<mojom::KeyringController> receiver);
 
   // Currently only support one default keyring, `CreateDefaultKeyring` and
   // `RestoreDefaultKeyring` will overwrite existing one if success
@@ -65,6 +67,7 @@ class KeyringController : public KeyedService, public mojom::KeyringController {
                      RestoreWalletCallback callback) override;
   void Unlock(const std::string& password, UnlockCallback callback) override;
   void Lock() override;
+  void IsLocked(IsLockedCallback callback) override;
   void AddAccount(AddAccountCallback callback) override;
   void IsWalletBackedUp(IsWalletBackedUpCallback callback) override;
   void NotifyWalletBackupComplete() override;
@@ -80,6 +83,9 @@ class KeyringController : public KeyedService, public mojom::KeyringController {
 
   bool IsLocked() const;
   // bool Unlock(const std::string& password);
+
+  void AddObserver(::mojo::PendingRemote<mojom::KeyringControllerObserver>
+                       observer) override;
 
   /* TODO(darkdh): For other keyrings support
   void DeleteKeyring(size_t index);
@@ -119,6 +125,7 @@ class KeyringController : public KeyedService, public mojom::KeyringController {
 
   PrefService* prefs_;
 
+  mojo::RemoteSet<mojom::KeyringControllerObserver> observers_;
   mojo::ReceiverSet<mojom::KeyringController> receivers_;
 
   KeyringController(const KeyringController&) = delete;

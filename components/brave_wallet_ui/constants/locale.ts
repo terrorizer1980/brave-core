@@ -190,11 +190,12 @@ const locale = {
   networkMain: 'Mainnet',
   networkTest: 'Test Network',
   networkRopsten: 'Roptsten',
-  networkKavan: 'Kavan',
+  networkKovan: 'Kovan',
   networkRinkeby: 'Rinkeby',
   networkGoerli: 'Goerli',
   networkBinance: 'Binance Smart Chain',
   networkBinanceAbbr: 'BSC',
+  networkLocalhost: 'Localhost',
 
   // Select Screens
   selectAccount: 'Select Account',
@@ -209,7 +210,13 @@ const locale = {
   swapEstimate: 'estimate',
   swapMarket: 'Market',
   swapLimit: 'Limit',
-  swapPriceIn: 'Price in'
+  swapPriceIn: 'Price in',
+
+  // Buy
+  buyTitle: 'Test Faucet',
+  buyDescription: 'Get Ether from a faucet for',
+  buyWyreButton: 'Continue to Wyre',
+  buyFaucetButton: 'Get Ether'
 }
 
 export default locale

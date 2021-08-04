@@ -2,15 +2,16 @@ import * as React from 'react'
 import {
   BuySendSwapTypes,
   UserAccountType,
-  NetworkOptionsType,
   AssetOptionType,
   OrderTypes,
   SlippagePresetObjectType,
   ExpirationPresetObjectType,
-  ToOrFromType
+  ToOrFromType,
+  Network
 } from '../../constants/types'
 import Swap from '../../components/buy-send-swap/tabs/swap-tab'
 import Send from '../../components/buy-send-swap/tabs/send-tab'
+import Buy from '../../components/buy-send-swap/tabs/buy-tab'
 import {
   Layout
 } from '../../components/buy-send-swap'
@@ -20,27 +21,30 @@ export interface Props {
   orderType: OrderTypes
   swapToAsset: AssetOptionType
   swapFromAsset: AssetOptionType
-  selectedNetwork: NetworkOptionsType
+  selectedNetwork: Network
   selectedAccount: UserAccountType
   exchangeRate: string
   slippageTolerance: SlippagePresetObjectType
   orderExpiration: ExpirationPresetObjectType
+  buyAmount: string
   sendAmount: string
   fromAmount: string
   toAmount: string
   fromAssetBalance: string
   toAssetBalance: string
   toAddress: string
+  onSubmitBuy: (asset: AssetOptionType) => void
   onSubmitSend: () => void
   onSubmitSwap: () => void
   flipSwapAssets: () => void
-  onSelectNetwork: (network: NetworkOptionsType) => void
+  onSelectNetwork: (network: Network) => void
   onSelectAccount: (account: UserAccountType) => void
   onToggleOrderType: () => void
   onSelectAsset: (asset: AssetOptionType, toOrFrom: ToOrFromType) => void
   onSelectSlippageTolerance: (slippage: SlippagePresetObjectType) => void
   onSelectExpiration: (expiration: ExpirationPresetObjectType) => void
   onSetExchangeRate: (value: string) => void
+  onSetBuyAmount: (value: string) => void
   onSetSendAmount: (value: string) => void
   onSetFromAmount: (value: string) => void
   onSetToAddress: (value: string) => void
@@ -59,12 +63,14 @@ function BuySendSwap (props: Props) {
     exchangeRate,
     slippageTolerance,
     orderExpiration,
+    buyAmount,
     sendAmount,
     fromAmount,
     toAmount,
     fromAssetBalance,
     toAssetBalance,
     toAddress,
+    onSubmitBuy,
     onSubmitSend,
     onSubmitSwap,
     flipSwapAssets,
@@ -75,13 +81,14 @@ function BuySendSwap (props: Props) {
     onSelectSlippageTolerance,
     onSelectExpiration,
     onSetExchangeRate,
+    onSetBuyAmount,
     onSetSendAmount,
     onSetFromAmount,
     onSetToAddress,
     onSetToAmount,
     onSelectPresetAmount
   } = props
-  const [selectedTab, setSelectedTab] = React.useState<BuySendSwapTypes>('send')
+  const [selectedTab, setSelectedTab] = React.useState<BuySendSwapTypes>('buy')
 
   const changeTab = (tab: BuySendSwapTypes) => () => {
     setSelectedTab(tab)
@@ -134,6 +141,19 @@ function BuySendSwap (props: Props) {
           selectedAccount={selectedAccount}
           selectedNetwork={selectedNetwork}
           selectedAsset={swapFromAsset}
+          showHeader={true}
+        />
+      }
+      {selectedTab === 'buy' &&
+        <Buy
+          accounts={accounts}
+          buyAmount={buyAmount}
+          onSelectAccount={onSelectAccount}
+          onSelectNetwork={onSelectNetwork}
+          onSubmit={onSubmitBuy}
+          onSetBuyAmount={onSetBuyAmount}
+          selectedAccount={selectedAccount}
+          selectedNetwork={selectedNetwork}
           showHeader={true}
         />
       }

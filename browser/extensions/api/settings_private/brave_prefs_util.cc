@@ -125,6 +125,8 @@ const PrefsUtil::TypedPrefMap& BravePrefsUtil::GetAllowlistedKeys() {
       settings_api::PrefType::PREF_TYPE_BOOLEAN;
   (*s_brave_allowlist)[kNewTabPageSuperReferralThemesOption] =
       settings_api::PrefType::PREF_TYPE_NUMBER;
+  (*s_brave_allowlist)[kTabsSearchShow] =
+      settings_api::PrefType::PREF_TYPE_BOOLEAN;
 #if BUILDFLAG(ENABLE_SIDEBAR)
   (*s_brave_allowlist)[sidebar::kSidebarShowOption] =
       settings_api::PrefType::PREF_TYPE_NUMBER;
@@ -148,7 +150,7 @@ const PrefsUtil::TypedPrefMap& BravePrefsUtil::GetAllowlistedKeys() {
       settings_api::PrefType::PREF_TYPE_BOOLEAN;
   (*s_brave_allowlist)[kNewTabPageShowBinance] =
       settings_api::PrefType::PREF_TYPE_BOOLEAN;
-  (*s_brave_allowlist)[kNewTabPageShowTogether] =
+  (*s_brave_allowlist)[kNewTabPageShowBraveTalk] =
       settings_api::PrefType::PREF_TYPE_BOOLEAN;
   (*s_brave_allowlist)[kNewTabPageShowGemini] =
       settings_api::PrefType::PREF_TYPE_BOOLEAN;

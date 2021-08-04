@@ -619,6 +619,11 @@ class PageWallet extends React.Component<Props, State> {
         text = getLocale('processorBitflyer')
         break
       }
+      case 5: { // Rewards.Processor.GEMINI
+        text = getLocale('processorGemini')
+        break
+      }
+
     }
 
     if (text.length === 0) {
@@ -792,7 +797,8 @@ class PageWallet extends React.Component<Props, State> {
       ui,
       pendingContributionTotal,
       recoveryKey,
-      externalWallet
+      externalWallet,
+      paymentId
     } = this.props.rewardsData
     const { total } = balance
     const { emptyWallet, modalBackup } = ui
@@ -800,6 +806,10 @@ class PageWallet extends React.Component<Props, State> {
     const pendingTotal = parseFloat((pendingContributionTotal || 0).toFixed(3))
     const walletType = externalWallet ? externalWallet.type : undefined
     const walletProvider = utils.getWalletProviderName(externalWallet)
+
+    if (!paymentId) {
+      this.props.actions.getPaymentId()
+    }
 
     return (
       <>
@@ -833,6 +843,7 @@ class PageWallet extends React.Component<Props, State> {
         {
           modalBackup
             ? <ModalBackupRestore
+              paymentId={paymentId}
               activeTabId={this.state.activeTabId}
               backupKey={recoveryKey}
               showBackupNotice={this.showBackupNotice()}

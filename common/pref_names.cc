@@ -60,7 +60,7 @@ const char kNewTabPageShowToday[] = "brave.new_tab_page.show_brave_today";
 const char kNewTabPageShowRewards[] = "brave.new_tab_page.show_rewards";
 const char kNewTabPageShowBinance[] = "brave.new_tab_page.show_binance";
 const char kNewTabPageShowGemini[] = "brave.new_tab_page.show_gemini";
-const char kNewTabPageShowTogether[] = "brave.new_tab_page.show_together";
+const char kNewTabPageShowBraveTalk[] = "brave.new_tab_page.show_together";
 const char kNewTabPageHideAllWidgets[] = "brave.new_tab_page.hide_all_widgets";
 const char kNewTabPageShowsOptions[] = "brave.new_tab_page.shows_options";
 const char kBraveTodaySources[] = "brave.today.sources";
@@ -94,6 +94,7 @@ const char kBraveGCMChannelStatus[] = "brave.gcm.channel_status";
 const char kImportDialogExtensions[] = "import_dialog_extensions";
 const char kImportDialogPayments[] = "import_dialog_payments";
 const char kMRUCyclingEnabled[] = "brave.mru_cycling_enabled";
+const char kTabsSearchShow[] = "brave.tabs_search_show";
 
 #if defined(OS_ANDROID)
 const char kDesktopModeEnabled[] = "brave.desktop_mode_enabled";

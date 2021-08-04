@@ -244,10 +244,10 @@ void CustomizeWebUIHTMLSource(const std::string &name,
         { "torStatusInitializing", IDS_BRAVE_PRIVATE_NEW_TAB_TOR_STATUS_INITIALIZING },   // NOLINT
         { "torTip", IDS_BRAVE_PRIVATE_NEW_TAB_TOR_TIP},
 
-        // Together prompt
-        { "togetherPromptTitle", IDS_BRAVE_TOGETHER_PROMPT_TITLE },
-        { "togetherPromptDescription", IDS_BRAVE_TOGETHER_PROMPT_DESCRIPTION },
-        { "togetherPromptAction", IDS_BRAVE_TOGETHER_PROMPT_ACTION },
+        // Brave Talk prompt
+        { "braveTalkPromptTitle", IDS_BRAVE_TALK_PROMPT_TITLE },
+        { "braveTalkPromptDescription", IDS_BRAVE_TALK_PROMPT_DESCRIPTION },
+        { "braveTalkPromptAction", IDS_BRAVE_TALK_PROMPT_ACTION },
 
         // Rewards widget
         { "rewardsWidgetBat", IDS_BRAVE_UI_BAT_REWARDS_TEXT },
@@ -273,11 +273,11 @@ void CustomizeWebUIHTMLSource(const std::string &name,
         { "tosAndPp", IDS_REWARDS_WIDGET_TOS_AND_PP},     // NOLINT
         { "rewardsWidgetStartUsing", IDS_REWARDS_WIDGET_START_USING},     // NOLINT
         { "pendingRewardsMessage", IDS_BRAVE_REWARDS_PENDING_REWARDS_MESSAGE },
-        // Together Widget
-        { "togetherWidgetTitle", IDS_TOGETHER_WIDGET_TITLE },
-        { "togetherWidgetWelcomeTitle", IDS_TOGETHER_WIDGET_WELCOME_TITLE },
-        { "togetherWidgetStartButton", IDS_TOGETHER_WIDGET_START_BUTTON },
-        { "togetherWidgetAboutData", IDS_TOGETHER_WIDGET_ABOUT_DATA },
+        // Brave Talk  Widget
+        { "braveTalkWidgetTitle", IDS_BRAVE_TALK_WIDGET_TITLE },
+        { "braveTalkWidgetWelcomeTitle", IDS_BRAVE_TALK_WIDGET_WELCOME_TITLE },
+        { "braveTalkWidgetStartButton", IDS_BRAVE_TALK_WIDGET_START_BUTTON },
+        { "braveTalkWidgetAboutData", IDS_BRAVE_TALK_WIDGET_ABOUT_DATA },
         // Binance Widget
         { "binanceWidgetBuy", IDS_BINANCE_WIDGET_BUY },
         { "binanceWidgetBuyCrypto", IDS_BINANCE_WIDGET_BUY_CRYPTO },
@@ -366,6 +366,7 @@ void CustomizeWebUIHTMLSource(const std::string &name,
         { "geminiWidgetUnitPrice", IDS_GEMINI_WIDGET_UNIT_PRICE },
         { "geminiWidgetTotalPrice", IDS_GEMINI_WIDGET_TOTAL_PRICE },
         { "geminiWidgetTotalAmount", IDS_GEMINI_WIDGET_TOTAL_AMOUNT },
+        { "geminiWidgetSummaryNoBalance", IDS_GEMINI_WIDGET_SUMMARY_NO_BALANCE},
         { "cryptoConvertAmountPlaceholder", IDS_CRYPTO_CONVERT_AMOUNT_PLACEHOLDER },      // NOLINT
 #if BUILDFLAG(CRYPTO_DOT_COM_ENABLED)
         { "cryptoDotComWidgetShowPrice", IDS_CRYPTO_DOT_COM_WIDGET_SHOW_PRICE },
@@ -476,9 +477,6 @@ void CustomizeWebUIHTMLSource(const std::string &name,
         { "adsSubdivisionTargetingDisable",  IDS_BRAVE_REWARDS_LOCAL_ADS_SUBDIVISION_TARGETING_DISABLE },  // NOLINT
         { "adsSubdivisionTargetingDisabled",  IDS_BRAVE_REWARDS_LOCAL_ADS_SUBDIVISION_TARGETING_DISABLED },  // NOLINT
         { "adsTitle",  IDS_BRAVE_REWARDS_LOCAL_ADS_TITLE },
-
-        { "qrBoxText",  IDS_BRAVE_REWARDS_LOCAL_QR_BOX_TEXT },
-        { "qrBoxButton",  IDS_BRAVE_REWARDS_LOCAL_QR_BOX_BUTTON },
 
         { "bat", IDS_BRAVE_UI_BAT_REWARDS_TEXT },
         { "contributionTitle",  IDS_BRAVE_REWARDS_LOCAL_CONTR_TITLE },
@@ -742,6 +740,7 @@ void CustomizeWebUIHTMLSource(const std::string &name,
         { "processorBraveTokens", IDS_BRAVE_UI_PROCESSOR_BRAVE_TOKENS },
         { "processorUphold", IDS_BRAVE_UI_PROCESSOR_UPHOLD },
         { "processorBitflyer", IDS_BRAVE_UI_PROCESSOR_BITFLYER },
+        { "processorGemini", IDS_BRAVE_UI_PROCESSOR_GEMINI },
         { "processorBraveUserFunds", IDS_BRAVE_UI_PROCESSOR_BRAVE_USER_FUNDS },
         { "readyToTakePart", IDS_BRAVE_UI_READY_TO_TAKE_PART },
         { "readyToTakePartOptInText", IDS_BRAVE_UI_READY_TO_TAKE_PART_OPT_IN_TEXT },             // NOLINT
@@ -750,6 +749,7 @@ void CustomizeWebUIHTMLSource(const std::string &name,
         { "recurring", IDS_BRAVE_UI_RECURRING },
         { "recurringDonation", IDS_BRAVE_UI_RECURRING_DONATION },
         { "recurringDonations", IDS_BRAVE_UI_RECURRING_DONATIONS },
+        { "relaunch", IDS_BRAVE_UI_RELAUNCH },
         { "remove", IDS_BRAVE_UI_REMOVE },
         { "removeAdFromSaved", IDS_BRAVE_UI_REMOVE_AD_FROM_SAVED },
         { "reservedAmountText", IDS_BRAVE_UI_RESERVED_AMOUNT_TEXT },
@@ -788,6 +788,8 @@ void CustomizeWebUIHTMLSource(const std::string &name,
         { "rewardsPanelText3", IDS_BRAVE_UI_REWARDS_PANEL_TEXT3 },
         { "rewardsPanelText4", IDS_BRAVE_UI_REWARDS_PANEL_TEXT4 },
         { "rewardsPanelTextVerify", IDS_BRAVE_UI_REWARDS_PANEL_VERIFY },
+        { "rewardsViewQRCodeText1", IDS_BRAVE_UI_REWARDS_VIEW_QR_CODE_TEXT1 },
+        { "rewardsViewQRCodeText2", IDS_BRAVE_UI_REWARDS_VIEW_QR_CODE_TEXT2 },
         { "rewardsRestoreText1", IDS_BRAVE_UI_REWARDS_RESTORE_TEXT1 },
         { "rewardsRestoreText2", IDS_BRAVE_UI_REWARDS_RESTORE_TEXT2 },
         { "rewardsRestoreText3", IDS_BRAVE_UI_REWARDS_RESTORE_TEXT3 },
@@ -866,6 +868,10 @@ void CustomizeWebUIHTMLSource(const std::string &name,
         { "showAll", IDS_BRAVE_UI_SHOW_ALL },
         { "viewedSites", IDS_BRAVE_UI_VIEWED_SITES },
         { "termsOfService", IDS_BRAVE_UI_TERMS_OF_SERVICE },
+
+        { "geminiPromoTitle", IDS_BRAVE_UI_GEMINI_PROMO_TITLE },
+        { "geminiPromoInfo", IDS_BRAVE_UI_GEMINI_PROMO_INFO },
+        { "geminiPromoDisclaimer", IDS_BRAVE_UI_GEMINI_PROMO_DISCLAIMER },
 
         { "tapNetworkTitle", IDS_BRAVE_UI_TAP_NETWORK_TITLE },
         { "tapNetworkInfo", IDS_BRAVE_UI_TAP_NETWORK_INFO },
@@ -1066,6 +1072,7 @@ void CustomizeWebUIHTMLSource(const std::string &name,
         { "processorBraveTokens", IDS_BRAVE_UI_PROCESSOR_BRAVE_TOKENS },
         { "processorUphold", IDS_BRAVE_UI_PROCESSOR_UPHOLD },
         { "processorBitflyer", IDS_BRAVE_UI_PROCESSOR_BITFLYER },
+        { "processorGemini", IDS_BRAVE_UI_PROCESSOR_GEMINI },
         { "processorBraveUserFunds", IDS_BRAVE_UI_PROCESSOR_BRAVE_USER_FUNDS },
         { "promotionAds", IDS_BRAVE_REWARDS_INTERNALS_PROMOTION_ADS },
         { "promotionAmount", IDS_BRAVE_REWARDS_INTERNALS_PROMOTION_AMOUNT },
