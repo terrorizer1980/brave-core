@@ -35,13 +35,12 @@ OBJC_EXPORT
 
 + (void)setLogHandler:(nullable BraveCoreLogHandler)logHandler;
 
-- (instancetype)init;
+- (instancetype)initWithUserAgent:(NSString*)userAgent;
 
-- (instancetype)initWithSyncServiceURL:(NSString*)syncServiceURL;
+- (instancetype)initWithUserAgent:(NSString*)userAgent
+                   syncServiceURL:(NSString*)syncServiceURL;
 
 - (void)scheduleLowPriorityStartupTasks;
-
-- (void)setUserAgent:(NSString*)userAgent;
 
 @property(nonatomic, readonly) id<BraveWalletKeyringController>
     keyringController;

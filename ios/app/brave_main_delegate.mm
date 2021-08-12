@@ -11,7 +11,9 @@
 #include "base/files/file_path.h"
 #include "base/mac/bundle_locations.h"
 #include "base/path_service.h"
+#include "brave/components/brave_component_updater/browser/brave_component.h"
 #include "components/browser_sync/browser_sync_switches.h"
+#include "components/component_updater/component_updater_switches.h"
 #include "components/sync/base/model_type.h"
 #include "components/sync/base/sync_base_switches.h"
 #include "components/sync/driver/sync_driver_switches.h"
@@ -50,6 +52,10 @@ void BraveMainDelegate::BasicStartupComplete() {
   command_line->RemoveSwitch(switches::kDisableSyncTypes);
   command_line->AppendSwitchASCII(switches::kDisableSyncTypes, syncer::ModelTypeSetToString(disabledTypes));
   command_line->AppendSwitch(switches::kDisableEnterprisePolicy);
+
+  std::string source =
+      "url-source=" + brave_component_updater::GetUpdateURLHost();
+  command_line->AppendSwitchASCII(switches::kComponentUpdater, source.c_str());
 
   // Brave's sync protocol does not use the sync service url
   command_line->AppendSwitchASCII(switches::kSyncServiceURL,
