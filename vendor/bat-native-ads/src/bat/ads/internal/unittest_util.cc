@@ -211,6 +211,7 @@ bool GetNextUrlEndpointResponse(const std::string& url,
   } else {
     if (url_endpoint_response_indexes_iter->second ==
         url_endpoint_responses.size() - 1) {
+      // uuid needs to know about gtest retries...
       NOTREACHED() << "Missing MockUrlRequest endpoint response for " << url;
       return false;
     }
