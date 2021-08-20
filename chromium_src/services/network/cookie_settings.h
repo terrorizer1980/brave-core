@@ -6,15 +6,17 @@
 #ifndef BRAVE_CHROMIUM_SRC_SERVICES_NETWORK_COOKIE_SETTINGS_H_
 #define BRAVE_CHROMIUM_SRC_SERVICES_NETWORK_COOKIE_SETTINGS_H_
 
-#define IsCookieAccessible                                        \
-  IsEphemeralCookieAccessible(                                    \
-      const net::CanonicalCookie& cookie, const GURL& url,        \
-      const GURL& site_for_cookies,                               \
-      const absl::optional<url::Origin>& top_frame_origin) const; \
-  bool IsEphemeralPrivacyModeEnabled(                             \
-      const GURL& url, const GURL& site_for_cookies,              \
-      const absl::optional<url::Origin>& top_frame_origin,        \
-      net::SamePartyContext::Type same_party_context_type) const; \
+#define IsCookieAccessible                                            \
+  IsEphemeralCookieAccessible(                                        \
+      const net::CanonicalCookie& cookie, const GURL& url,            \
+      const GURL& site_for_cookies,                                   \
+      const absl::optional<url::Origin>& top_frame_origin) const;     \
+  bool IsEphemeralPrivacyModeEnabled(                                 \
+      const GURL& url, const GURL& site_for_cookies,                  \
+      const absl::optional<url::Origin>& top_frame_origin,            \
+      net::SamePartyContext::Type same_party_context_type) const;     \
+  ContentSetting GetDetailedCookieSetting(                            \
+      const GURL& url, bool* is_shields_disable_rule) const override; \
   bool IsCookieAccessible
 
 #define AnnotateAndMoveUserBlockedCookies                   \
