@@ -20,6 +20,7 @@
 #include "bat/ads/internal/bundle/creative_ad_notification_info.h"
 #include "bat/ads/internal/client/client.h"
 #include "bat/ads/internal/eligible_ads/ad_notifications/eligible_ad_notifications.h"
+#include "bat/ads/internal/features/ad_serving/ad_serving_features.h"
 #include "bat/ads/internal/logging.h"
 #include "bat/ads/internal/p2a/p2a_ad_opportunities/p2a_ad_opportunity.h"
 #include "bat/ads/internal/platform/platform_helper.h"
@@ -28,6 +29,7 @@
 #include "bat/ads/internal/segments/segments_util.h"
 #include "bat/ads/internal/settings/settings.h"
 #include "bat/ads/internal/time_formatting_util.h"
+#include "third_party/abseil-cpp/absl/types/optional.h"
 
 namespace ads {
 namespace ad_notifications {
@@ -35,6 +37,7 @@ namespace ad_notifications {
 namespace {
 constexpr base::TimeDelta kRetryServingAdAtNextInterval =
     base::TimeDelta::FromMinutes(2);
+const int kVersionUnderTest = 2;
 }  // namespace
 
 AdServing::AdServing(
@@ -106,6 +109,19 @@ void AdServing::MaybeServeAd() {
     return;
   }
 
+  // TODO(https://github.com/brave/brave-browser/issues/17542): Refactor Brave
+  // Ads serving to use builder pattern for supporting variants
+  const int ad_serving_version = features::GetAdServingVersion();
+  BLOG(1, "Ad serving version " << ad_serving_version);
+  if (ad_serving_version == kVersionUnderTest) {
+    MaybeServeAdV2();
+    return;
+  }
+
+  MaybeServeAdV1();
+}
+
+void AdServing::MaybeServeAdV1() {
   const ad_targeting::UserModelInfo user_model = ad_targeting::BuildUserModel();
 
   DCHECK(eligible_ads_);
@@ -137,6 +153,35 @@ void AdServing::MaybeServeAd() {
     BLOG(1, "Served ad notification");
     ServedAd(ad);
   });
+}
+
+void AdServing::MaybeServeAdV2() {
+  const ad_targeting::UserModelInfo user_model = ad_targeting::BuildUserModel();
+
+  eligible_ads_->GetForFeatures(
+      interest_segments, intent_segments,  // TODO(Moritz Haller): Refactor to use `user_model`
+      [=](const bool was_allowed,
+          absl::optional<CreativeAdNotificationInfo> ad) {
+        if (was_allowed) {
+          p2a::RecordAdOpportunityForSegments(AdType::kAdNotification,
+                                              interest_segments);
+        }
+
+        if (!ad) {
+          BLOG(1, "Ad notification not served: No eligible ads found");
+          FailedToServeAd();
+          return;
+        }
+
+        if (!ServeAd(ad.value())) {
+          BLOG(1, "Failed to serve ad notification");
+          FailedToServeAd();
+          return;
+        }
+
+        BLOG(1, "Served ad notification");
+        ServedAd(ad.value());
+      });
 }
 
 void AdServing::OnAdsPerHourChanged() {

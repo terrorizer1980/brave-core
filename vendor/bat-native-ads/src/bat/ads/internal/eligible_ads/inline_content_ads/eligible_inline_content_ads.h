@@ -11,8 +11,13 @@
 #include "bat/ads/internal/ad_events/ad_event_info.h"
 #include "bat/ads/internal/bundle/creative_inline_content_ad_info.h"
 #include "bat/ads/internal/frequency_capping/frequency_capping_aliases.h"
+#include "third_party/abseil-cpp/absl/types/optional.h"
 
 namespace ads {
+
+using GetForFeaturesCallback =
+    std::function<void(const bool,
+                       const absl::optional<CreativeInlineContentAdInfo>)>;
 
 namespace ad_targeting {
 struct UserModelInfo;
@@ -27,7 +32,7 @@ class AntiTargeting;
 
 namespace inline_content_ads {
 
-using GetEligibleAdsCallback =
+using GetForSegmentsCallback =
     std::function<void(const bool, const CreativeInlineContentAdList&)>;
 
 class EligibleAds {
@@ -44,6 +49,11 @@ class EligibleAds {
            const std::string& dimensions,
            GetEligibleAdsCallback callback);
 
+  void GetForFeatures(const SegmentList& interest_segments,
+                      const SegmentList& intent_segments,
+                      const std::string& dimensions,
+                      GetForFeaturesCallback callback);
+
  private:
   ad_targeting::geographic::SubdivisionTargeting*
       subdivision_targeting_;  // NOT OWNED
@@ -52,22 +62,35 @@ class EligibleAds {
 
   CreativeAdInfo last_served_creative_ad_;
 
+  void GetEligibleAds(const SegmentList& interest_segments,
+                      const SegmentList& intent_segments,
+                      const AdEventList& ad_events,
+                      const BrowsingHistoryList& browsing_history,
+                      const std::string& dimensions,
+                      GetForFeaturesCallback callback) const;
+
+  void ChooseAd(const CreativeInlineContentAdList& eligible_ads,
+                const AdEventList& ad_events,
+                const SegmentList& interest_segments,
+                const SegmentList& intent_segments,
+                GetForFeaturesCallback callback) const;
+
   void GetForParentChildSegments(const ad_targeting::UserModelInfo& user_model,
                                  const std::string& dimensions,
                                  const AdEventList& ad_events,
                                  const BrowsingHistoryList& browsing_history,
-                                 GetEligibleAdsCallback callback) const;
+                                 GetForSegmentsCallback callback) const;
 
   void GetForParentSegments(const ad_targeting::UserModelInfo& user_model,
                             const std::string& dimensions,
                             const AdEventList& ad_events,
                             const BrowsingHistoryList& browsing_history,
-                            GetEligibleAdsCallback callback) const;
+                            GetForSegmentsCallback callback) const;
 
   void GetForUntargeted(const std::string& dimensions,
                         const AdEventList& ad_events,
                         const BrowsingHistoryList& browsing_history,
-                        GetEligibleAdsCallback callback) const;
+                        GetForSegmentsCallback callback) const;
 
   CreativeInlineContentAdList FilterIneligibleAds(
       const CreativeInlineContentAdList& ads,
