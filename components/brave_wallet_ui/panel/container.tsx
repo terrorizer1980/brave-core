@@ -309,6 +309,11 @@ function Container (props: Props) {
       networkPayload: networkPayload
     })
   }
+  const onNetworkLearnMore = () => {
+    chrome.tabs.create({
+      url: 'https://support.brave.com/'
+    }).catch((e) => { console.error(e) })
+  }
 
   const onRejectTransaction = () => {
     // Logic here to Reject a Transaction
@@ -423,9 +428,8 @@ function Container (props: Props) {
           <AllowAddNetworkPanel
             onApprove={onApproveAddNetwork}
             onCancel={onCancelAddNetwork}
-            networkPayload={networkPayload}
-            selectedNetwork={selectedNetwork}
-          />
+            onLearnMore={onNetworkLearnMore}
+            networkPayload={networkPayload}          />
         </SignContainer>
       </PanelWrapper>
     )
@@ -588,7 +592,6 @@ function Container (props: Props) {
 
   if (selectedPanel === 'buy') {
     return (
-<<<<<<< HEAD
       <PanelWrapper isLonger={false}>
         <StyledExtensionWrapper>
           <Panel
@@ -603,33 +606,13 @@ function Container (props: Props) {
                 onSubmit={onSubmitBuy}
                 selectedAsset={selectedWyreAsset}
                 buyAmount={buyAmount}
-                selectedNetwork={selectedNetwork}
+                selectedNetwork={GetNetworkInfo(selectedNetwork.chainId, networkList)}
               />
             </SendWrapper>
           </Panel>
         </StyledExtensionWrapper>
       </PanelWrapper>
     )
-=======
-      <StyledExtensionWrapper>
-        <Panel
-          navAction={navigateTo}
-          title={panelTitle}
-          useSearch={false}
-        >
-          <SendWrapper>
-            <Buy
-              onChangeBuyView={onChangeSendView}
-              onInputChange={onSetBuyAmount}
-              onSubmit={onSubmitBuy}
-              selectedAsset={selectedWyreAsset}
-              buyAmount={buyAmount}
-              selectedNetwork={GetNetworkInfo(selectedNetwork.chainId, networkList)}
-            />
-          </SendWrapper>
-        </Panel>
-      </StyledExtensionWrapper>)
->>>>>>> b210f45ecc (Rework networks to add customized by user)
   }
 
   return (
