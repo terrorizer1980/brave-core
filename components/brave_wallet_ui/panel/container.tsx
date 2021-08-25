@@ -412,6 +412,10 @@ function Container (props: Props) {
           <ConfirmTransactionPanel
             onConfirm={onConfirmTransaction}
             onReject={onRejectTransaction}
+<<<<<<< HEAD
+=======
+            onClickMore={onShowMoreModal}
+>>>>>>> 9cad4d2b7b (Moved PanelWrapper into Container and Fixed Errors)
             selectedAccount={selectedAccount}
             selectedNetwork={selectedNetwork}
             transactionPayload={transactionPayloadExample}
@@ -429,7 +433,12 @@ function Container (props: Props) {
             onApprove={onApproveAddNetwork}
             onCancel={onCancelAddNetwork}
             onLearnMore={onNetworkLearnMore}
+<<<<<<< HEAD
             networkPayload={networkPayload}          />
+=======
+            networkPayload={networkPayload}
+          />
+>>>>>>> 9cad4d2b7b (Moved PanelWrapper into Container and Fixed Errors)
         </SignContainer>
       </PanelWrapper>
     )
@@ -442,6 +451,10 @@ function Container (props: Props) {
           <SignPanel
             message='Pass Sign Transaction Message Here'
             onCancel={onCancelSigning}
+<<<<<<< HEAD
+=======
+            onClickMore={onShowMoreModal}
+>>>>>>> 9cad4d2b7b (Moved PanelWrapper into Container and Fixed Errors)
             onSign={onSignTransaction}
             selectedAccount={selectedAccount}
             selectedNetwork={GetNetworkInfo(selectedNetwork.chainId, networkList)}
