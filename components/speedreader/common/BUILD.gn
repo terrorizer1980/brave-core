@@ -6,6 +6,9 @@
 import("//mojo/public/tools/bindings/mojom.gni")
 
 mojom("mojom") {
-  sources = [ "speedreader_ui_prefs.mojom" ]
+  sources = [
+    "speedreader_ui_prefs.mojom",
+    "speedreader_result.mojom",
+  ]
   deps = [ "//mojo/public/mojom/base" ]
 }

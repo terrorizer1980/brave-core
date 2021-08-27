@@ -6,8 +6,11 @@
 #ifndef BRAVE_BROWSER_SPEEDREADER_SPEEDREADER_TAB_HELPER_H_
 #define BRAVE_BROWSER_SPEEDREADER_SPEEDREADER_TAB_HELPER_H_
 
+#include "brave/components/speedreader/common/speedreader_result.mojom.h"
+#include "content/public/browser/render_frame_host_receiver_set.h"
 #include "content/public/browser/web_contents_observer.h"
 #include "content/public/browser/web_contents_user_data.h"
+#include "mojo/public/cpp/bindings/pending_associated_receiver.h"
 
 namespace content {
 class NavigationHandle;
@@ -21,7 +24,8 @@ class SpeedreaderBubbleView;
 // Determines if speedreader should be active for a given top-level navigation.
 class SpeedreaderTabHelper
     : public content::WebContentsObserver,
-      public content::WebContentsUserData<SpeedreaderTabHelper> {
+      public content::WebContentsUserData<SpeedreaderTabHelper>,
+      public mojom::SpeedreaderResult {
  public:
   enum class DistillState {
     // Used as an initialization state
@@ -49,6 +53,10 @@ class SpeedreaderTabHelper
     // Speedreader is disabled, the URL passes the heuristic.
     kPageProbablyReadable,
   };
+
+  static void BindSpeedreaderHost(
+      mojo::PendingAssociatedReceiver<mojom::SpeedreaderResult> receiver,
+      content::RenderFrameHost* rfh);
 
   static bool PageStateIsDistilled(DistillState state) {
     return state == DistillState::kReaderMode ||
@@ -115,10 +123,15 @@ class SpeedreaderTabHelper
   void DidRedirectNavigation(
       content::NavigationHandle* navigation_handle) override;
 
+  // blink::mojom::SpeedreaderResult:
+  void GetPageDistilled(GetPageDistilledCallback callback) override;
+
   bool single_shot_next_request_ =
       false;  // run speedreader once on next page load
   DistillState distill_state_ = DistillState::kNone;
   SpeedreaderBubbleView* speedreader_bubble_ = nullptr;
+  content::RenderFrameHostReceiverSet<mojom::SpeedreaderResult>
+      speedreader_result_receivers_;
 
   WEB_CONTENTS_USER_DATA_KEY_DECL();
 };

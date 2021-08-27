@@ -22,12 +22,27 @@
 
 namespace speedreader {
 
+// static
+void SpeedreaderTabHelper::BindSpeedreaderHost(
+    mojo::PendingAssociatedReceiver<mojom::SpeedreaderResult> receiver,
+    content::RenderFrameHost* rfh) {
+  auto* web_contents = content::WebContents::FromRenderFrameHost(rfh);
+  if (!web_contents)
+    return;
+
+  auto* tab_helper = SpeedreaderTabHelper::FromWebContents(web_contents);
+  if (!tab_helper)
+    return;
+  tab_helper->speedreader_result_receivers_.Bind(rfh, std::move(receiver));
+}
+
 SpeedreaderTabHelper::~SpeedreaderTabHelper() {
   HideBubble();
 }
 
 SpeedreaderTabHelper::SpeedreaderTabHelper(content::WebContents* web_contents)
-    : content::WebContentsObserver(web_contents) {}
+    : content::WebContentsObserver(web_contents),
+      speedreader_result_receivers_(web_contents, this) {}
 
 bool SpeedreaderTabHelper::IsSpeedreaderEnabled() const {
   Profile* profile =
@@ -171,6 +186,10 @@ void SpeedreaderTabHelper::HideBubble() {
     speedreader_bubble_->Hide();
     speedreader_bubble_ = nullptr;
   }
+}
+
+void SpeedreaderTabHelper::GetPageDistilled(GetPageDistilledCallback callback) {
+  std::move(callback).Run(true);
 }
 
 WEB_CONTENTS_USER_DATA_KEY_IMPL(SpeedreaderTabHelper)

@@ -8,9 +8,12 @@
 
 #include <memory>
 
+#include "brave/components/speedreader/common/speedreader_result.mojom.h"
 #include "brave/components/speedreader/renderer/speedreader_js_handler.h"
 #include "content/public/renderer/render_frame.h"
 #include "content/public/renderer/render_frame_observer.h"
+#include "third_party/blink/public/common/associated_interfaces/associated_interface_provider.h"
+#include "v8/include/v8.h"
 
 namespace speedreader {
 
@@ -18,14 +21,21 @@ class SpeedreaderJsRenderFrameObserver : public content::RenderFrameObserver {
  public:
   SpeedreaderJsRenderFrameObserver(content::RenderFrame* render_frame,
                                    const int32_t isolated_world_id);
-  ~SpeedreaderJsRenderFrameObserver() override = default;
+  ~SpeedreaderJsRenderFrameObserver() override;
+
+  // content::RenderFrameObserver:
+  void DidCreateScriptContext(v8::Local<v8::Context> context,
+                              int32_t world_id) override;
 
  private:
   // content::RenderFrameObserver:
   void OnDestruct() override;
+  void OnPageDistillResult(bool is_distilled);
 
   // The isolated world that speedreader should be written to
-  //int32_t isolated_world_id_;
+  int32_t isolated_world_id_;
+  std::unique_ptr<SpeedreaderJSHandler> speedreader_js_handler_;
+  mojo::AssociatedRemote<mojom::SpeedreaderResult> speedreader_result_remote_;
 };
 
 }  // namespace speedreader

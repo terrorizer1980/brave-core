@@ -5,6 +5,7 @@
 
 #include "brave/components/speedreader/renderer/speedreader_js_handler.h"
 
+#include "base/bind.h"
 #include "brave/browser/speedreader/speedreader_tab_helper.h"
 #include "brave/components/speedreader/common/speedreader_ui_prefs.mojom-shared.h"
 #include "gin/arguments.h"
@@ -22,8 +23,7 @@ constexpr float kMaxFontScale = 2.5f;
 
 namespace speedreader {
 
-SpeedreaderJSHandler::SpeedreaderJSHandler(
-    content::RenderFrame* render_frame)
+SpeedreaderJSHandler::SpeedreaderJSHandler(content::RenderFrame* render_frame)
     : render_frame_(render_frame) {}
 
 SpeedreaderJSHandler::~SpeedreaderJSHandler() = default;
@@ -66,16 +66,15 @@ void SpeedreaderJSHandler::SetFontScale(float scale) {
 void SpeedreaderJSHandler::BindFunctionsToObject(
     v8::Isolate* isolate,
     v8::Local<v8::Object> javascript_object) {
-  BindFunctionToObject(
-      isolate, javascript_object, "setFontScale",
-      base::BindRepeating(&SpeedreaderJSHandler::SetFontScale,
-                          base::Unretained(this)));
+  BindFunctionToObject(isolate, javascript_object, "setFontScale",
+                       base::BindRepeating(&SpeedreaderJSHandler::SetFontScale,
+                                           base::Unretained(this)));
 }
 
 void SpeedreaderJSHandler::EnsureConnected() {
   if (!speedreader_ui_prefs_) {
     render_frame_->GetBrowserInterfaceBroker()->GetInterface(
-      speedreader_ui_prefs_.BindNewPipeAndPassReceiver());
+        speedreader_ui_prefs_.BindNewPipeAndPassReceiver());
   }
 }
 
@@ -92,8 +91,7 @@ void SpeedreaderJSHandler::CreateSpeedreaderObject(
       !speedreader_value->IsObject()) {
     speedreader_obj = v8::Object::New(isolate);
     global
-        ->Set(context, gin::StringToSymbol(isolate, obj_name),
-              speedreader_obj)
+        ->Set(context, gin::StringToSymbol(isolate, obj_name), speedreader_obj)
         .Check();
     BindFunctionsToObject(isolate, speedreader_obj);
   }

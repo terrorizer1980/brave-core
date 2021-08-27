@@ -47,6 +47,8 @@
 #include "brave/components/gemini/browser/buildflags/buildflags.h"
 #include "brave/components/ipfs/buildflags/buildflags.h"
 #include "brave/components/speedreader/buildflags.h"
+#include "brave/components/speedreader/common/speedreader_result.mojom.h"
+#include "brave/components/speedreader/features.h"
 #include "brave/components/tor/buildflags/buildflags.h"
 #include "brave/grit/brave_generated_resources.h"
 #include "chrome/browser/browser_process.h"
@@ -315,6 +317,7 @@ bool BraveContentBrowserClient::BindAssociatedReceiverFromFrame(
     content::RenderFrameHost* render_frame_host,
     const std::string& interface_name,
     mojo::ScopedInterfaceEndpointHandle* handle) {
+  LOG(ERROR) << "hi:" << interface_name;
   if (ChromeContentBrowserClient::BindAssociatedReceiverFromFrame(
           render_frame_host, interface_name, handle)) {
     return true;
@@ -329,6 +332,16 @@ bool BraveContentBrowserClient::BindAssociatedReceiverFromFrame(
     return true;
   }
 #endif  // BUILDFLAG(ENABLE_WIDEVINE)
+
+#if BUILDFLAG(ENABLE_SPEEDREADER)
+  if (interface_name == speedreader::mojom::SpeedreaderResult::Name_) {
+    speedreader::SpeedreaderTabHelper::BindSpeedreaderHost(
+        mojo::PendingAssociatedReceiver<speedreader::mojom::SpeedreaderResult>(
+            std::move(*handle)),
+        render_frame_host);
+    return true;
+  }
+#endif  // BUILDFLAG(ENABLE_SPEEDREADER)
 
   if (interface_name == brave_shields::mojom::BraveShieldsHost::Name_) {
     brave_shields::BraveShieldsWebContentsObserver::BindBraveShieldsHost(

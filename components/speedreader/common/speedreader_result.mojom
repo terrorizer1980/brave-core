@@ -6,6 +6,6 @@ module speedreader.mojom;
 
 import "mojo/public/mojom/base/values.mojom";
 
-interface SpeedreaderUIPrefs {
-  SetFontScale(float scale);
+interface SpeedreaderResult {
+  GetPageDistilled() => (bool is_distilled);
 };
