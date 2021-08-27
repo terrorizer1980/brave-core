@@ -56,7 +56,7 @@ void EligibleAds::SetLastServedAd(const CreativeAdInfo& creative_ad) {
 }
 
 void EligibleAds::Get(const ad_targeting::UserModelInfo& user_model,
-                      GetEligibleAdsCallback callback) {
+                      GetCallback callback) {
   database::table::AdEvents database_table;
   database_table.GetAll([=](const bool success, const AdEventList& ad_events) {
     if (!success) {
@@ -75,9 +75,8 @@ void EligibleAds::Get(const ad_targeting::UserModelInfo& user_model,
   });
 }
 
-void EligibleAds::GetForFeatures(const SegmentList& interest_segments,  // TODO(Moritz Haller): rename
-                                 const SegmentList& intent_segments,
-                                 GetForFeaturesCallback callback) {
+void EligibleAds::GetV2(const ad_targeting::UserModelInfo& user_model,
+                        GetV2Callback callback) {
   database::table::AdEvents database_table;
   database_table.GetAll([=](const bool success, const AdEventList& ad_events) {
     if (!success) {
@@ -90,19 +89,17 @@ void EligibleAds::GetForFeatures(const SegmentList& interest_segments,  // TODO(
     const int days_ago = features::GetBrowsingHistoryDaysAgo();
     AdsClientHelper::Get()->GetBrowsingHistory(
         max_count, days_ago, [=](const BrowsingHistoryList& history) {
-          GetEligibleAds(interest_segments, intent_segments, ad_events, history,
-                         callback);
+          GetEligibleAds(user_model, ad_events, history, callback);
         });
   });
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void EligibleAds::GetEligibleAds(const SegmentList& interest_segments,
-                                 const SegmentList& intent_segments,
+void EligibleAds::GetEligibleAds(const ad_targeting::UserModelInfo& user_model,
                                  const AdEventList& ad_events,
                                  const BrowsingHistoryList& browsing_history,
-                                 GetForFeaturesCallback callback) const {
+                                 GetV2Callback callback) const {
   BLOG(1, "Get eligible ads");
 
   database::table::CreativeAdNotifications database_table;
@@ -132,24 +129,21 @@ void EligibleAds::GetEligibleAds(const SegmentList& interest_segments,
       return;
     }
 
-    ChooseAd(eligible_ads, ad_events, interest_segments, intent_segments,
-             callback);
+    ChooseAd(user_model, ad_events, eligible_ads, callback);
   });
 }
 
-void EligibleAds::ChooseAd(const CreativeAdNotificationList& eligible_ads,
+void EligibleAds::ChooseAd(const ad_targeting::UserModelInfo& user_model,
                            const AdEventList& ad_events,
-                           const SegmentList& interest_segments,
-                           const SegmentList& intent_segments,
-                           GetForFeaturesCallback callback) const {
+                           const CreativeAdNotificationList& eligible_ads,
+                           GetV2Callback callback) const {
   DCHECK(!eligible_ads.empty());
 
   const CreativeAdNotificationPredictorMap ads =
       GroupEligibleAdsByCreativeInstanceId(eligible_ads);
 
   const CreativeAdNotificationPredictorMap ads_with_features_and_scores =
-      ComputePredictorFeaturesAndScores(ads, ad_events, interest_segments,
-                                        intent_segments);
+      ComputePredictorFeaturesAndScores(ads, user_model, ad_events);
 
   const absl::optional<CreativeAdNotificationInfo> ad =
       SampleFromAds(ads_with_features_and_scores);
@@ -161,7 +155,7 @@ void EligibleAds::GetForParentChildSegments(
     const ad_targeting::UserModelInfo& user_model,
     const AdEventList& ad_events,
     const BrowsingHistoryList& browsing_history,
-    GetEligibleAdsCallback callback) const {
+    GetCallback callback) const {
   const SegmentList segments =
       ad_targeting::GetTopParentChildSegments(user_model);
   if (segments.empty()) {
@@ -196,7 +190,7 @@ void EligibleAds::GetForParentSegments(
     const ad_targeting::UserModelInfo& user_model,
     const AdEventList& ad_events,
     const BrowsingHistoryList& browsing_history,
-    GetEligibleAdsCallback callback) const {
+    GetCallback callback) const {
   const SegmentList segments = ad_targeting::GetTopParentSegments(user_model);
   if (segments.empty()) {
     GetForUntargeted(ad_events, browsing_history, callback);
@@ -227,7 +221,7 @@ void EligibleAds::GetForParentSegments(
 
 void EligibleAds::GetForUntargeted(const AdEventList& ad_events,
                                    const BrowsingHistoryList& browsing_history,
-                                   GetEligibleAdsCallback callback) const {
+                                   GetCallback callback) const {
   BLOG(1, "Get eligible ads for untargeted segment");
 
   database::table::CreativeAdNotifications database_table;

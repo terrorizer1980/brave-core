@@ -302,10 +302,12 @@ TEST_F(BatAdsEligibleInlineContentAdsTest, GetAdsForUnmatchedDimensions) {
   // Assert
 }
 
-TEST_F(BatAdsEligibleInlineContentAdsTest, GetForFeaturesWithoutAds) {
+TEST_F(BatAdsEligibleInlineContentAdsTest, GetV2WithoutAds) {
   // Arrange
-  const SegmentList intent_segments = {"intent-foo", "intent-bar"};
   const SegmentList interest_segments = {"interest-foo", "interest-bar"};
+  const SegmentList purchase_intent_segments = {"intent-foo", "intent-bar"};
+  const ad_targeting::UserModelInfo user_model = ad_targeting::BuildUserModel(
+        interest_segments, purchase_intent_segments);
 
   // Act
   ad_targeting::geographic::SubdivisionTargeting subdivision_targeting;
@@ -313,17 +315,17 @@ TEST_F(BatAdsEligibleInlineContentAdsTest, GetForFeaturesWithoutAds) {
   inline_content_ads::EligibleAds eligible_ads(&subdivision_targeting,
                                                &anti_targeting_resource);
 
-  eligible_ads.GetForFeatures(
-      intent_segments, interest_segments, "200x100",
+  eligible_ads.GetV2(
+      user_model, "200x100",
       [=](const bool was_allowed,
-          absl::optional<CreativeInlineContentAdInfo> ad) {
+          const absl::optional<CreativeInlineContentAdInfo> ad) {
         EXPECT_EQ(absl::nullopt, ad);
       });
 
   // Assert
 }
 
-TEST_F(BatAdsEligibleInlineContentAdsTest, GetForFeaturesWithEmptySegments) {
+TEST_F(BatAdsEligibleInlineContentAdsTest, GetV2WithEmptySegments) {
   // Arrange
   CreativeInlineContentAdList creative_inline_content_ads;
 
@@ -337,8 +339,10 @@ TEST_F(BatAdsEligibleInlineContentAdsTest, GetForFeaturesWithEmptySegments) {
 
   Save(creative_inline_content_ads);
 
-  const SegmentList intent_segments = {};
   const SegmentList interest_segments = {};
+  const SegmentList purchase_intent_segments = {};
+  const ad_targeting::UserModelInfo user_model = ad_targeting::BuildUserModel(
+        interest_segments, purchase_intent_segments);
 
   // Act
   ad_targeting::geographic::SubdivisionTargeting subdivision_targeting;
@@ -348,15 +352,17 @@ TEST_F(BatAdsEligibleInlineContentAdsTest, GetForFeaturesWithEmptySegments) {
 
   const CreativeInlineContentAdInfo expected_ad = creative_inline_content_ad_2;
 
-  eligible_ads.GetForFeatures(
-      intent_segments, interest_segments, "200x100",
+  eligible_ads.GetV2(
+      user_model, "200x100",
       [=](const bool was_allowed,
-          absl::optional<CreativeInlineContentAdInfo> ad) { EXPECT_TRUE(ad); });
+          const absl::optional<CreativeInlineContentAdInfo> ad) {
+        EXPECT_TRUE(ad);
+      });
 
   // Assert
 }
 
-TEST_F(BatAdsEligibleInlineContentAdsTest, GetForFeatures) {
+TEST_F(BatAdsEligibleInlineContentAdsTest, GetV2) {
   // Arrange
   CreativeInlineContentAdList creative_inline_content_ads;
 
@@ -370,8 +376,10 @@ TEST_F(BatAdsEligibleInlineContentAdsTest, GetForFeatures) {
 
   Save(creative_inline_content_ads);
 
-  const SegmentList intent_segments = {"foo-bar1", "foo-bar2"};
   const SegmentList interest_segments = {"foo-bar3"};
+  const SegmentList purchase_intent_segments = {"foo-bar1", "foo-bar2"};
+  const ad_targeting::UserModelInfo user_model = ad_targeting::BuildUserModel(
+        interest_segments, purchase_intent_segments);
 
   // Act
   ad_targeting::geographic::SubdivisionTargeting subdivision_targeting;
@@ -381,10 +389,12 @@ TEST_F(BatAdsEligibleInlineContentAdsTest, GetForFeatures) {
 
   const CreativeInlineContentAdInfo expected_ad = creative_inline_content_ad_2;
 
-  eligible_ads.GetForFeatures(
-      intent_segments, interest_segments, "200x100",
+  eligible_ads.GetV2(
+      user_model, "200x100",
       [=](const bool was_allowed,
-          absl::optional<CreativeInlineContentAdInfo> ad) { EXPECT_TRUE(ad); });
+          const absl::optional<CreativeInlineContentAdInfo> ad) {
+        EXPECT_TRUE(ad);
+      });
 
   // Assert
 }

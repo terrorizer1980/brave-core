@@ -11,63 +11,63 @@
 
 #include "base/time/time.h"
 #include "bat/ads/internal/ad_events/ad_event_util.h"
-#include "bat/ads/internal/ad_targeting/ad_targeting_segment_util.h"
+#include "bat/ads/internal/ad_targeting/ad_targeting.h"
+#include "bat/ads/internal/ad_targeting/ad_targeting_user_model_info.h"
 #include "bat/ads/internal/container_util.h"
 #include "bat/ads/internal/eligible_ads/ad_predictor_info.h"
 #include "bat/ads/internal/eligible_ads/eligible_ads_features.h"
+#include "bat/ads/internal/segments/segments_util.h"
 
 namespace ads {
 
-const int kMatchesIntentChildSegmentWeight = 0;
-const int kMatchesIntentParentSegmentWeight = 1;
-const int kMatchesInterestChildSegmentWeight = 2;
-const int kMatchesInterestParentSegmentWeight = 3;
-const int kAdLastSeenInHoursWeight = 4;
-const int kAdvertiserLastSeenInHoursWeight = 5;
-const int kPriorityWeight = 6;
+enum AdPredictorWeightIndex {
+  kMatchesIntentChildSegment = 0,
+  kMatchesIntentParentSegment,
+  kMatchesInterestChildSegment,
+  kMatchesInterestParentSegment,
+  kAdLastSeenInHours,
+  kAdvertiserLastSeenInHours,
+  kPriority
+};
 
 template <typename T>
 AdPredictorInfo<T> ComputePredictorFeatures(
     const AdPredictorInfo<T>& ad_predictor,
-    const AdEventList& ad_events,
-    const SegmentList& interest_segments,
-    const SegmentList& intent_segments) {
+    const ad_targeting::UserModelInfo& user_model,
+    const AdEventList& ad_events) {
   AdPredictorInfo<T> mutable_ad_predictor = ad_predictor;
 
   const SegmentList intent_child_segments_intersection =
-      SetIntersection(intent_segments, ad_predictor.segments);
+      SetIntersection(ad_targeting::GetTopParentChildPurchaseIntenSegments(user_model), ad_predictor.segments);
   mutable_ad_predictor.does_match_intent_child_segments =
       intent_child_segments_intersection.empty() ? false : true;
 
-  const SegmentList parent_intent_segments =
-      GetParentSegments(interest_segments);
   const SegmentList intent_parent_segments_intersection =
-      SetIntersection(parent_intent_segments, ad_predictor.segments);
+      SetIntersection(ad_targeting::GetTopParentPurchaseIntenSegments(user_model), ad_predictor.segments);
   mutable_ad_predictor.does_match_intent_parent_segments =
       intent_parent_segments_intersection.empty() ? false : true;
 
   const SegmentList interest_child_segments_intersection =
-      SetIntersection(interest_segments, ad_predictor.segments);
+      SetIntersection(ad_targeting::GetTopParentChildInterestSegments(user_model), ad_predictor.segments);
   mutable_ad_predictor.does_match_interest_child_segments =
       interest_child_segments_intersection.empty() ? false : true;
 
-  const SegmentList parent_interest_segments =
-      GetParentSegments(interest_segments);
   const SegmentList interest_parent_segments_intersection =
-      SetIntersection(parent_interest_segments, ad_predictor.segments);
+      SetIntersection(ad_targeting::GetTopParentInterestSegments(user_model), ad_predictor.segments);
   mutable_ad_predictor.does_match_interest_parent_segments =
       interest_parent_segments_intersection.empty() ? false : true;
 
   const base::Time now = base::Time::Now();
 
-  const base::Time last_seen_ad =
+  const absl::optional<base::Time> last_seen_ad =
       GetLastSeenAdTime(ad_events, ad_predictor.creative_ad);
-  mutable_ad_predictor.ad_last_seen_hours_ago = (now - last_seen_ad).InHours();
+  mutable_ad_predictor.ad_last_seen_hours_ago =
+      last_seen_ad ? (now - last_seen_ad.value()).InHours() : 0;
 
-  const base::Time last_seen_advertiser =
+  const absl::optional<base::Time> last_seen_advertiser =
       GetLastSeenAdvertiserTime(ad_events, ad_predictor.creative_ad);
   mutable_ad_predictor.advertiser_last_seen_hours_ago =
-      (now - last_seen_advertiser).InHours();
+      last_seen_advertiser ? (now - last_seen_advertiser.value()).InHours() : 0;
 
   return mutable_ad_predictor;
 }
@@ -78,31 +78,32 @@ double ComputePredictorScore(const AdPredictorInfo<T>& ad_predictor) {
   double score = 0.0;
 
   if (ad_predictor.does_match_intent_child_segments) {
-    score += weights.at(kMatchesIntentChildSegmentWeight);
+    score += weights.at(AdPredictorWeightIndex::kMatchesIntentChildSegment);
   } else if (ad_predictor.does_match_intent_parent_segments) {
-    score += weights.at(kMatchesIntentParentSegmentWeight);
+    score += weights.at(AdPredictorWeightIndex::kMatchesIntentParentSegment);
   }
 
   if (ad_predictor.does_match_interest_child_segments) {
-    score += weights.at(kMatchesInterestChildSegmentWeight);
+    score += weights.at(AdPredictorWeightIndex::kMatchesInterestChildSegment);
   } else if (ad_predictor.does_match_interest_parent_segments) {
-    score += weights.at(kMatchesInterestParentSegmentWeight);
+    score += weights.at(AdPredictorWeightIndex::kMatchesInterestParentSegment);
   }
 
   if (ad_predictor.ad_last_seen_hours_ago <= base::Time::kHoursPerDay) {
-    score += weights.at(kAdLastSeenInHoursWeight) *
+    score += weights.at(AdPredictorWeightIndex::kAdLastSeenInHours) *
              ad_predictor.ad_last_seen_hours_ago /
              static_cast<double>(base::Time::kHoursPerDay);
   }
 
   if (ad_predictor.advertiser_last_seen_hours_ago <= base::Time::kHoursPerDay) {
-    score += weights.at(kAdvertiserLastSeenInHoursWeight) *
+    score += weights.at(AdPredictorWeightIndex::kAdvertiserLastSeenInHours) *
              ad_predictor.advertiser_last_seen_hours_ago /
              static_cast<double>(base::Time::kHoursPerDay);
   }
 
   if (ad_predictor.creative_ad.priority > 0) {
-    score += weights.at(kPriorityWeight) / ad_predictor.creative_ad.priority;
+    score += weights.at(AdPredictorWeightIndex::kPriority) /
+             ad_predictor.creative_ad.priority;
   }
 
   score *= ad_predictor.creative_ad.ptr;
@@ -113,15 +114,14 @@ double ComputePredictorScore(const AdPredictorInfo<T>& ad_predictor) {
 template <typename T>
 std::map<std::string, AdPredictorInfo<T>> ComputePredictorFeaturesAndScores(
     const std::map<std::string, AdPredictorInfo<T>>& ads,
-    const AdEventList& ad_events,
-    const SegmentList& interest_segments,
-    const SegmentList& intent_segments) {
+    const ad_targeting::UserModelInfo& user_model,
+    const AdEventList& ad_events) {
   std::map<std::string, AdPredictorInfo<T>> ads_with_features;
 
   for (auto& ad : ads) {
     const AdPredictorInfo<T> ad_predictor = ad.second;
     AdPredictorInfo<T> mutable_ad_predictor = ComputePredictorFeatures(
-        ad_predictor, ad_events, interest_segments, intent_segments);
+        ad_predictor, user_model, ad_events);
     mutable_ad_predictor.score = ComputePredictorScore(mutable_ad_predictor);
     ads_with_features.insert(
         {mutable_ad_predictor.creative_ad.creative_instance_id,

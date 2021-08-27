@@ -25,10 +25,6 @@
 namespace ads {
 namespace inline_content_ads {
 
-namespace {
-const int kVersionUnderTest = 2;
-}  // namespace
-
 AdServing::AdServing(
     ad_targeting::geographic::SubdivisionTargeting* subdivision_targeting,
     resource::AntiTargeting* anti_targeting_resource)
@@ -74,12 +70,23 @@ void AdServing::MaybeServeAd(const std::string& dimensions,
   // Ads serving to use builder pattern for supporting variants
   const int ad_serving_version = features::GetAdServingVersion();
   BLOG(1, "Ad serving version " << ad_serving_version);
-  if (ad_serving_version == kVersionUnderTest) {
-    MaybeServeAdV2(dimensions, callback);
-    return;
-  }
 
-  MaybeServeAdV1(dimensions, callback);
+  switch (ad_serving_version) {
+    case 1: {
+      MaybeServeAdV1(dimensions, callback);
+      break;
+    }
+
+    case 2: {
+      MaybeServeAdV2(dimensions, callback);
+      break;
+    }
+
+    default: {
+      NOTREACHED() << "Ad serving version is not supported";
+      break;
+    }
+  }
 }
 
 void AdServing::MaybeServeAdV1(const std::string& dimensions,
@@ -90,6 +97,8 @@ void AdServing::MaybeServeAdV1(const std::string& dimensions,
   eligible_ads_->Get(
       user_model, dimensions,
       [=](const bool was_allowed, const CreativeInlineContentAdList& ads) {
+        InlineContentAdInfo inline_content_ad;
+
         if (ads.empty()) {
           BLOG(1, "Inline content ad not served: No eligible ads found");
           NotifyFailedToServeInlineContentAd();
@@ -104,7 +113,7 @@ void AdServing::MaybeServeAdV1(const std::string& dimensions,
 
         eligible_ads_->SetLastServedAd(ad);
 
-        InlineContentAdInfo inline_content_ad = BuildInlineContentAd(ad);
+        inline_content_ad = BuildInlineContentAd(ad);
 
         BLOG(1, "Serving inline content ad:\n"
                     << "  uuid: " << inline_content_ad.uuid << "\n"
@@ -136,10 +145,12 @@ void AdServing::MaybeServeAdV2(const std::string& dimensions,
 
   const ad_targeting::UserModelInfo user_model = ad_targeting::BuildUserModel();
 
-  eligible_ads_->GetForFeatures(
-      interest_segments, intent_segments, dimensions,  // TODO(Moritz Haller): refactor to use `user_model`
+  eligible_ads_->GetV2(
+      user_model, dimensions,
       [=](const bool was_allowed,
-          absl::optional<CreativeInlineContentAdInfo> ad) {
+          const absl::optional<CreativeInlineContentAdInfo> ad) {
+        InlineContentAdInfo inline_content_ad;
+
         if (!ad) {
           BLOG(1, "Inline content ad not served: No eligible ads found");
           NotifyFailedToServeInlineContentAd();
@@ -149,8 +160,7 @@ void AdServing::MaybeServeAdV2(const std::string& dimensions,
 
         eligible_ads_->SetLastServedAd(ad.value());
 
-        InlineContentAdInfo inline_content_ad =
-            BuildInlineContentAd(ad.value());
+        inline_content_ad = BuildInlineContentAd(ad.value());
 
         BLOG(1, "Serving inline content ad:\n"
                     << "  uuid: " << inline_content_ad.uuid << "\n"

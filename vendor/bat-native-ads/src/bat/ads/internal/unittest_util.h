@@ -78,6 +78,7 @@ using URLEndpoints = std::map<std::string, URLEndpointResponses>;
 
 class AdsClientMock;
 
+// todo(Moritz Haller): unittest_file_util.cc
 base::FilePath GetTestPath();
 
 absl::optional<std::string> ReadFileFromTestPathToString(
@@ -88,6 +89,7 @@ base::FilePath GetResourcesPath();
 absl::optional<std::string> ReadFileFromResourcePathToString(
     const std::string& name);
 
+// todo(Moritz Haller): unittest_util.cc
 void SetEnvironment(const mojom::Environment environment);
 
 void SetSysInfo(const mojom::SysInfo& sys_info);
@@ -137,6 +139,7 @@ void MockRunDBTransaction(const std::unique_ptr<AdsClientMock>& mock,
 
 void MockPrefs(const std::unique_ptr<AdsClientMock>& mock);
 
+// todo(Moritz Haller): unittest_time_util.cc
 int64_t TimestampFromDateString(const std::string& date);
 base::Time TimeFromDateString(const std::string& date);
 
