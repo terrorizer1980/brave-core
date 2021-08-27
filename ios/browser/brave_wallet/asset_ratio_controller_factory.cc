@@ -46,7 +46,8 @@ bool AssetRatioControllerFactory::ServiceIsNULLWhileTesting() const {
   return true;
 }
 
-web::BrowserState* AssetRatioControllerFactory::GetBrowserStateToUse(web::BrowserState* context) const {
+web::BrowserState* AssetRatioControllerFactory::GetBrowserStateToUse(
+    web::BrowserState* context) const {
   return GetBrowserStateRedirectedInIncognito(context);
 }
 

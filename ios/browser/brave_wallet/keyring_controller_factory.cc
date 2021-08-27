@@ -21,8 +21,10 @@ mojom::KeyringController* KeyringControllerFactory::GetForBrowserState(
 }
 
 // static
-KeyringController* KeyringControllerFactory::GetControllerForBrowserState(ChromeBrowserState* browser_state) {
-  return static_cast<KeyringController*>(GetInstance()->GetServiceForBrowserState(browser_state, true));
+KeyringController* KeyringControllerFactory::GetControllerForBrowserState(
+    ChromeBrowserState* browser_state) {
+  return static_cast<KeyringController*>(
+      GetInstance()->GetServiceForBrowserState(browser_state, true));
 }
 
 // static
@@ -49,7 +51,8 @@ bool KeyringControllerFactory::ServiceIsNULLWhileTesting() const {
   return true;
 }
 
-web::BrowserState* KeyringControllerFactory::GetBrowserStateToUse(web::BrowserState* context) const {
+web::BrowserState* KeyringControllerFactory::GetBrowserStateToUse(
+    web::BrowserState* context) const {
   return GetBrowserStateRedirectedInIncognito(context);
 }
 

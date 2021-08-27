@@ -17,10 +17,13 @@
 
 @implementation AssetRatioControllerFactory
 + (nullable id)serviceForBrowserState:(ChromeBrowserState*)browserState {
-  auto* controller = brave_wallet::AssetRatioControllerFactory::GetForBrowserState(browserState);
+  auto* controller =
+      brave_wallet::AssetRatioControllerFactory::GetForBrowserState(
+          browserState);
   if (!controller) {
     return nil;
   }
-  return [[BraveWalletAssetRatioControllerImpl alloc] initWithAssetRatioController:controller];
+  return [[BraveWalletAssetRatioControllerImpl alloc]
+      initWithAssetRatioController:controller];
 }
 @end

@@ -21,8 +21,10 @@ mojom::EthJsonRpcController* EthJsonRpcControllerFactory::GetForBrowserState(
 }
 
 // static
-EthJsonRpcController* EthJsonRpcControllerFactory::GetControllerForBrowserState(ChromeBrowserState* browser_state) {
-  return static_cast<EthJsonRpcController*>(GetInstance()->GetServiceForBrowserState(browser_state, true));
+EthJsonRpcController* EthJsonRpcControllerFactory::GetControllerForBrowserState(
+    ChromeBrowserState* browser_state) {
+  return static_cast<EthJsonRpcController*>(
+      GetInstance()->GetServiceForBrowserState(browser_state, true));
 }
 
 // static
@@ -51,7 +53,8 @@ bool EthJsonRpcControllerFactory::ServiceIsNULLWhileTesting() const {
   return true;
 }
 
-web::BrowserState* EthJsonRpcControllerFactory::GetBrowserStateToUse(web::BrowserState* context) const {
+web::BrowserState* EthJsonRpcControllerFactory::GetBrowserStateToUse(
+    web::BrowserState* context) const {
   return GetBrowserStateRedirectedInIncognito(context);
 }
 

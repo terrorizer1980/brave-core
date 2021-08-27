@@ -12,7 +12,8 @@
 @protocol BraveWalletAssetRatioController;
 
 OBJC_EXPORT
-@interface AssetRatioControllerFactory : KeyedServiceFactoryWrapper<id<BraveWalletAssetRatioController>>
-@end
+@interface AssetRatioControllerFactory
+    : KeyedServiceFactoryWrapper < id <BraveWalletAssetRatioController>
+> @end
 
 #endif  // BRAVE_IOS_BROWSER_BRAVE_WALLET_BRAVE_WALLET_KEYED_SERVICE_FACTORIES_H_

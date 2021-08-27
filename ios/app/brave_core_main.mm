@@ -222,10 +222,10 @@ static bool CustomLogHandler(int severity,
 
 - (id<BraveWalletSwapController>)swapController {
   if (!_swapController) {
-    auto* controller =
-    brave_wallet::SwapControllerFactory::GetForBrowserState(_mainBrowserState);
+    auto* controller = brave_wallet::SwapControllerFactory::GetForBrowserState(
+        _mainBrowserState);
     _swapController = [[BraveWalletSwapControllerImpl alloc]
-                             initWithSwapController:controller];
+        initWithSwapController:controller];
   }
   return _swapController;
 }
@@ -234,15 +234,17 @@ static bool CustomLogHandler(int severity,
   if (!_ercTokenRegistry) {
     auto* registry = brave_wallet::ERCTokenRegistry::GetInstance();
     _ercTokenRegistry = [[BraveWalletERCTokenRegistryImpl alloc]
-                             initWithERCTokenRegistry:registry];
+        initWithERCTokenRegistry:registry];
   }
   return _ercTokenRegistry;
 }
 
 - (id<BraveWalletEthTxController>)ethTxController {
   if (!_ethTxController) {
-    auto* controller = brave_wallet::EthTxControllerFactory::GetForBrowserState(_mainBrowserState);
-    _ethTxController = [[BraveWalletEthTxControllerImpl alloc] initWithEthTxController:controller];
+    auto* controller = brave_wallet::EthTxControllerFactory::GetForBrowserState(
+        _mainBrowserState);
+    _ethTxController = [[BraveWalletEthTxControllerImpl alloc]
+        initWithEthTxController:controller];
   }
   return _ethTxController;
 }

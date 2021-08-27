@@ -7,7 +7,7 @@ config("external") {
   include_dirs = [ "." ]
   visibility = [
     ":*",
-    "//brave/ios/browser/brave_wallet:*"
+    "//brave/ios/browser/brave_wallet:*",
   ]
 }
 

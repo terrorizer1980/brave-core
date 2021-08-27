@@ -27,7 +27,8 @@ NS_ASSUME_NONNULL_BEGIN
 /// Depending on the type of service you are requesting, you may receive
 /// the same service regardless of private mode, or you may receive `nil` if
 /// the service you requested does not support private browsing.
-+ (nullable ResultType)getForPrivateMode:(bool)isPrivateBrowsing NS_SWIFT_NAME(get(privateMode:)) NS_REQUIRES_SUPER;
++ (nullable ResultType)getForPrivateMode:(bool)isPrivateBrowsing
+    NS_SWIFT_NAME(get(privateMode:))NS_REQUIRES_SUPER;
 
 - (instancetype)init NS_UNAVAILABLE;
 

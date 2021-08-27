@@ -4,15 +4,15 @@
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
 source_set("brave_wallet") {
-  configs += [ 
+  configs += [
     "//brave/ios/components/keyed_service:external",
     "//build/config/compiler:enable_arc",
   ]
   sources = [
     "asset_ratio_controller_factory.cc",
     "asset_ratio_controller_factory.h",
-    "brave_wallet_keyed_service_factories.mm",
     "brave_wallet_keyed_service_factories.h",
+    "brave_wallet_keyed_service_factories.mm",
     "eth_json_rpc_controller_factory.cc",
     "eth_json_rpc_controller_factory.h",
     "eth_tx_controller_factory.cc",

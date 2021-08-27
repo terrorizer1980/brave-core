@@ -15,7 +15,8 @@
 @implementation KeyedServiceFactoryWrapper
 
 + (nullable id)getForPrivateMode:(bool)isPrivateBrowsing {
-  auto* browserStateManager = GetApplicationContext()->GetChromeBrowserStateManager();
+  auto* browserStateManager =
+      GetApplicationContext()->GetChromeBrowserStateManager();
   auto* browserState = browserStateManager->GetLastUsedBrowserState();
   if (isPrivateBrowsing) {
     browserState = browserState->GetOffTheRecordChromeBrowserState();

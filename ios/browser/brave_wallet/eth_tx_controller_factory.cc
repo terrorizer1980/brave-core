@@ -33,19 +33,31 @@ EthTxControllerFactory::EthTxControllerFactory()
     : BrowserStateKeyedServiceFactory(
           "EthTxController",
           BrowserStateDependencyManager::GetInstance()) {
-      DependsOn(EthJsonRpcControllerFactory::GetInstance());
-      DependsOn(KeyringControllerFactory::GetInstance());
-    }
+  DependsOn(EthJsonRpcControllerFactory::GetInstance());
+  DependsOn(KeyringControllerFactory::GetInstance());
+}
 
 EthTxControllerFactory::~EthTxControllerFactory() = default;
 
 std::unique_ptr<KeyedService> EthTxControllerFactory::BuildServiceInstanceFor(
     web::BrowserState* context) const {
   auto* browser_state = ChromeBrowserState::FromBrowserState(context);
-  auto tx_state_manager = std::make_unique<EthTxStateManager>(browser_state->GetPrefs(), EthJsonRpcControllerFactory::GetControllerForBrowserState(browser_state)->MakeRemote());
-  auto eth_nonce_tracker = std::make_unique<EthNonceTracker>(tx_state_manager.get(), EthJsonRpcControllerFactory::GetControllerForBrowserState(browser_state));
-  auto eth_pending_tx_tracker = std::make_unique<EthPendingTxTracker>(tx_state_manager.get(), EthJsonRpcControllerFactory::GetControllerForBrowserState(browser_state), eth_nonce_tracker.get());
-  std::unique_ptr<EthTxController> controller(new EthTxController(EthJsonRpcControllerFactory::GetControllerForBrowserState(browser_state), KeyringControllerFactory::GetControllerForBrowserState(browser_state), std::move(tx_state_manager), std::move(eth_nonce_tracker), std::move(eth_pending_tx_tracker), browser_state->GetPrefs()));
+  auto tx_state_manager = std::make_unique<EthTxStateManager>(
+      browser_state->GetPrefs(),
+      EthJsonRpcControllerFactory::GetControllerForBrowserState(browser_state)
+          ->MakeRemote());
+  auto eth_nonce_tracker = std::make_unique<EthNonceTracker>(
+      tx_state_manager.get(),
+      EthJsonRpcControllerFactory::GetControllerForBrowserState(browser_state));
+  auto eth_pending_tx_tracker = std::make_unique<EthPendingTxTracker>(
+      tx_state_manager.get(),
+      EthJsonRpcControllerFactory::GetControllerForBrowserState(browser_state),
+      eth_nonce_tracker.get());
+  std::unique_ptr<EthTxController> controller(new EthTxController(
+      EthJsonRpcControllerFactory::GetControllerForBrowserState(browser_state),
+      KeyringControllerFactory::GetControllerForBrowserState(browser_state),
+      std::move(tx_state_manager), std::move(eth_nonce_tracker),
+      std::move(eth_pending_tx_tracker), browser_state->GetPrefs()));
   return controller;
 }
 
@@ -53,7 +65,8 @@ bool EthTxControllerFactory::ServiceIsNULLWhileTesting() const {
   return true;
 }
 
-web::BrowserState* EthTxControllerFactory::GetBrowserStateToUse(web::BrowserState* context) const {
+web::BrowserState* EthTxControllerFactory::GetBrowserStateToUse(
+    web::BrowserState* context) const {
   return GetBrowserStateRedirectedInIncognito(context);
 }
 
