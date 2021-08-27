@@ -18,6 +18,7 @@
 #include "brave/browser/ui/webui/settings/brave_privacy_handler.h"
 #include "brave/browser/ui/webui/settings/brave_sync_handler.h"
 #include "brave/browser/ui/webui/settings/default_brave_shields_handler.h"
+#include "brave/components/brave_search/common/features.h"
 #include "brave/components/brave_wallet/common/buildflags/buildflags.h"
 #include "brave/components/ntp_background_images/browser/view_counter_service.h"
 #include "brave/components/sidebar/buildflags/buildflags.h"
@@ -79,6 +80,11 @@ void BraveSettingsUI::AddResources(content::WebUIDataSource* html_source,
   NavigationBarDataProvider::Initialize(html_source);
   if (auto* service = ViewCounterServiceFactory::GetForProfile(profile))
     service->InitializeWebUIDataSource(html_source);
+
+  html_source->AddBoolean(
+      "isWebDiscoveryEnabled",
+      base::FeatureList::IsEnabled(brave_search::features::kBraveWebDiscovery));
+
 #if BUILDFLAG(ENABLE_SIDEBAR)
   // TODO(simonhong): Remove this when sidebar is shipped by default in all
   // channels.

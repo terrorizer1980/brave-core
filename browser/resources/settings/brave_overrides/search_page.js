@@ -5,18 +5,23 @@
 
 import {I18nBehavior} from 'chrome://resources/js/i18n_behavior.m.js'
 import {RegisterPolymerTemplateModifications} from 'chrome://brave-resources/polymer_overriding.js'
+import {loadTimeData} from '../i18n_setup.js'
 
-RegisterPolymerTemplateModifications({
-  'settings-search-page': (templateContent) => {
-    const searchExplanation = templateContent.getElementById('searchExplanation')
-    searchExplanation.parentNode.insertAdjacentHTML('afterend', `
-      <settings-toggle-button
-        class="hr"
-        pref="{{prefs.brave.web_discovery_enabled}}"
-        label="${I18nBehavior.i18n('braveWebDiscoveryLabel')}"
-        sub-label="${I18nBehavior.i18n('braveWebDiscoverySubLabel')}"
-        learn-more-url="${I18nBehavior.i18n('webDiscoveryLearnMoreURL')}"
-      </settings-toggle-button>
-    `)
-  }
-})
+const isWebDiscoveryEnabled = loadTimeData.getBoolean('isWebDiscoveryEnabled')
+
+if (isWebDiscoveryEnabled) {
+  RegisterPolymerTemplateModifications({
+    'settings-search-page': (templateContent) => {
+      const searchExplanation = templateContent.getElementById('searchExplanation')
+      searchExplanation.parentNode.insertAdjacentHTML('afterend', `
+        <settings-toggle-button
+          class="hr"
+          pref="{{prefs.brave.web_discovery_enabled}}"
+          label="${I18nBehavior.i18n('braveWebDiscoveryLabel')}"
+          sub-label="${I18nBehavior.i18n('braveWebDiscoverySubLabel')}"
+          learn-more-url="${I18nBehavior.i18n('webDiscoveryLearnMoreURL')}"
+        </settings-toggle-button>
+      `)
+    }
+  })
+}

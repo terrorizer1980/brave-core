@@ -12,6 +12,7 @@
 #include "brave/components/brave_component_updater/browser/features.h"
 #include "brave/components/brave_rewards/common/buildflags/buildflags.h"
 #include "brave/components/brave_rewards/common/features.h"
+#include "brave/components/brave_search/common/features.h"
 #include "brave/components/brave_shields/common/features.h"
 #include "brave/components/brave_sync/features.h"
 #include "brave/components/brave_talk/features.h"
@@ -189,6 +190,10 @@ constexpr char kBraveSearchDefaultAPIDescription[] =
     "Enable javascript API only on "
     "Brave Search websites which will allow the user to make the search engine "
     "their default search provider.";
+
+constexpr char kBraveWebDiscoveryName[] = "Enable Brave Web Discovery feature";
+constexpr char kBraveWebDiscoveryDescription[] =
+    "Enable Web Discovery feature to supplement Brave Search";
 
 constexpr char kBraveSuperReferralName[] = "Enable Brave Super Referral";
 constexpr char kBraveSuperReferralDescription[] =
@@ -380,6 +385,10 @@ constexpr char kUseDevUpdaterUrlDescription[] =
       flag_descriptions::kBraveSyncName,                                    \
       flag_descriptions::kBraveSyncDescription, kOsDesktop,                 \
       FEATURE_VALUE_TYPE(brave_sync::features::kBraveSync)},                \
+    {"brave-web-discovery",                                                 \
+      flag_descriptions::kBraveWebDiscoveryName,                            \
+      flag_descriptions::kBraveWebDiscoveryDescription, kOsDesktop,         \
+      FEATURE_VALUE_TYPE(brave_search::features::kBraveWebDiscovery)},      \
     BRAVE_DECENTRALIZED_DNS_FEATURE_ENTRIES                                 \
     BRAVE_IPFS_FEATURE_ENTRIES                                              \
     BRAVE_NATIVE_WALLET_FEATURE_ENTRIES                                     \

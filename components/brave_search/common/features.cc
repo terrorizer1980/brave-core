@@ -6,9 +6,19 @@
 #include "brave/components/brave_search/common/features.h"
 
 #include "base/feature_list.h"
+#include "brave/components/brave_search/common/buildflags.h"
 
 namespace brave_search {
 namespace features {
+
+const base::Feature kBraveWebDiscovery {
+  "WebDiscovery",
+#if BUILDFLAG(ENABLE_WEB_DISCOVERY_FEATURE)
+      base::FEATURE_ENABLED_BY_DEFAULT
+#else
+      base::FEATURE_DISABLED_BY_DEFAULT
+#endif  // BUILDFLAG(ENABLE_WEB_DISCOVERY_FEATURE)
+};
 
 const base::Feature kBraveSearchDefaultAPIFeature{
     "BraveSearchDefaultAPI", base::FEATURE_ENABLED_BY_DEFAULT};

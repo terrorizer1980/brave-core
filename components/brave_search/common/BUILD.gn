@@ -1,6 +1,19 @@
+# Copyright(c) 2021 The Brave Authors.All rights reserved.
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0.If a copy of the MPL was not distributed with this file,
+# You can obtain one at http://mozilla.org/MPL/2.0/.
+
+import("//brave/components/brave_search/common/buildflags.gni")
+import("//build/buildflag_header.gni")
 import("//mojo/public/tools/bindings/mojom.gni")
 
+buildflag_header("buildflags") {
+  header = "buildflags.h"
+  flags = [ "ENABLE_WEB_DISCOVERY_FEATURE=$enable_web_discovery_feature" ]
+}
+
 static_library("common") {
+  public_deps = [ ":buildflags" ]
   sources = [
     "brave_search_utils.cc",
     "brave_search_utils.h",
