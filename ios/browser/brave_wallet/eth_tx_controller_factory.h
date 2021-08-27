@@ -3,8 +3,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef BRAVE_IOS_BROWSER_BRAVE_WALLET_KEYRING_CONTROLLER_FACTORY_H_
-#define BRAVE_IOS_BROWSER_BRAVE_WALLET_KEYRING_CONTROLLER_FACTORY_H_
+#ifndef BRAVE_IOS_BROWSER_BRAVE_WALLET_ETH_TX_CONTROLLER_FACTORY_H_
+#define BRAVE_IOS_BROWSER_BRAVE_WALLET_ETH_TX_CONTROLLER_FACTORY_H_
 
 #include <memory>
 
@@ -16,23 +16,19 @@ class ChromeBrowserState;
 
 namespace brave_wallet {
 
-class KeyringController;
-
-class KeyringControllerFactory : public BrowserStateKeyedServiceFactory {
+class EthTxControllerFactory : public BrowserStateKeyedServiceFactory {
  public:
   // Creates the service if it doesn't exist already for |browser_state|.
-  static mojom::KeyringController* GetForBrowserState(
-      ChromeBrowserState* browser_state);
-  static KeyringController* GetControllerForBrowserState(
+  static mojom::EthTxController* GetForBrowserState(
       ChromeBrowserState* browser_state);
 
-  static KeyringControllerFactory* GetInstance();
+  static EthTxControllerFactory* GetInstance();
 
  private:
-  friend struct base::DefaultSingletonTraits<KeyringControllerFactory>;
+  friend struct base::DefaultSingletonTraits<EthTxControllerFactory>;
 
-  KeyringControllerFactory();
-  ~KeyringControllerFactory() override;
+  EthTxControllerFactory();
+  ~EthTxControllerFactory() override;
 
   // BrowserContextKeyedServiceFactory:
   // BrowserStateKeyedServiceFactory implementation.
@@ -41,9 +37,9 @@ class KeyringControllerFactory : public BrowserStateKeyedServiceFactory {
   bool ServiceIsNULLWhileTesting() const override;
   web::BrowserState* GetBrowserStateToUse(web::BrowserState* context) const override;
 
-  DISALLOW_COPY_AND_ASSIGN(KeyringControllerFactory);
+  DISALLOW_COPY_AND_ASSIGN(EthTxControllerFactory);
 };
 
 }  // namespace brave_wallet
 
-#endif  // BRAVE_IOS_BROWSER_BRAVE_WALLET_KEYRING_CONTROLLER_FACTORY_H_
+#endif  // BRAVE_IOS_BROWSER_BRAVE_WALLET_ETH_TX_CONTROLLER_FACTORY_H_

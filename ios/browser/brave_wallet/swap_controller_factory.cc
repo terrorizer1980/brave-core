@@ -44,4 +44,8 @@ bool SwapControllerFactory::ServiceIsNULLWhileTesting() const {
   return true;
 }
 
+web::BrowserState* SwapControllerFactory::GetBrowserStateToUse(web::BrowserState* context) const {
+  return GetBrowserStateRedirectedInIncognito(context);
+}
+
 }  // namespace brave_wallet
