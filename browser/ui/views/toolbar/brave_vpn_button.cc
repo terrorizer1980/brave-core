@@ -131,7 +131,8 @@ bool BraveVPNButton::IsConnected() {
 }
 
 void BraveVPNButton::OnButtonPressed(const ui::Event& event) {
-  ShowBraveVPNPanel();
+  IsConnected() ? service_->Disconnect() : service_->Connect();
+  // ShowBraveVPNPanel();
 }
 
 void BraveVPNButton::ShowBraveVPNPanel() {

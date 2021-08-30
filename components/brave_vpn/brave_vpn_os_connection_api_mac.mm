@@ -138,8 +138,16 @@ BraveVPNOSConnectionAPI* BraveVPNOSConnectionAPI::GetInstance() {
   return s_manager.get();
 }
 
-BraveVPNOSConnectionAPIMac::BraveVPNOSConnectionAPIMac() = default;
-BraveVPNOSConnectionAPIMac::~BraveVPNOSConnectionAPIMac() = default;
+BraveVPNOSConnectionAPIMac::BraveVPNOSConnectionAPIMac() {
+  ObserveVPNConfigurationChange();
+}
+
+BraveVPNOSConnectionAPIMac::~BraveVPNOSConnectionAPIMac() {
+  if (vpn_observer_) {
+    [[NSNotificationCenter defaultCenter] removeObserver:vpn_observer_];
+    vpn_observer_ = nil;
+  }
+}
 
 void BraveVPNOSConnectionAPIMac::CreateVPNConnection(
     const BraveVPNConnectionInfo& info) {
@@ -225,7 +233,6 @@ void BraveVPNOSConnectionAPIMac::Connect(const std::string& name) {
       return;
     }
 
-    VLOG(2) << "Successfully connected";
     for (Observer& obs : observers_)
       obs.OnConnected(std::string());
   }];
@@ -267,6 +274,17 @@ void BraveVPNOSConnectionAPIMac::CheckConnection(const std::string& name) {
     for (Observer& obs : observers_)
       connected ? obs.OnConnected(name) : obs.OnDisconnected(name);
   }];
+}
+
+void BraveVPNOSConnectionAPIMac::ObserveVPNConfigurationChange() {
+  vpn_observer_ = [[NSNotificationCenter defaultCenter]
+      addObserverForName:NEVPNConfigurationChangeNotification
+                  object:nil
+                   queue:nil
+              usingBlock:^(NSNotification* notification) {
+                VLOG(2) << "Received VPN Configuration change notification";
+                CheckConnection(std::string());
+              }];
 }
 
 }  // namespace brave_vpn
