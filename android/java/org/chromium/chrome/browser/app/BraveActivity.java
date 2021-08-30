@@ -76,6 +76,7 @@ import org.chromium.chrome.browser.informers.BraveAndroidSyncDisabledInformer;
 import org.chromium.chrome.browser.notifications.BraveSetDefaultBrowserNotificationService;
 import org.chromium.chrome.browser.notifications.retention.RetentionNotificationUtil;
 import org.chromium.chrome.browser.ntp.NewTabPage;
+import org.chromium.chrome.browser.onboarding.BraveTalkOptInPopupListener;
 import org.chromium.chrome.browser.onboarding.OnboardingActivity;
 import org.chromium.chrome.browser.onboarding.OnboardingPrefManager;
 import org.chromium.chrome.browser.onboarding.v2.HighlightDialogFragment;
@@ -684,6 +685,14 @@ public abstract class BraveActivity<C extends ChromeActivityComponent>
         if (layout != null) {
             layout.openRewardsPanel();
         }
+    }
+
+    public void openBraveTalkOptInPopup(BraveTalkOptInPopupListener popupListener, boolean showRewardsOptIn) {
+      BraveToolbarLayoutImpl layout = (BraveToolbarLayoutImpl) findViewById(R.id.toolbar);
+      assert layout != null;
+      if (layout != null) {
+          layout.openBraveTalkOptInPopup(popupListener, showRewardsOptIn);
+      }
     }
 
     public Tab selectExistingTab(String url) {

@@ -1549,6 +1549,18 @@ until they verify, or until 90 days have passed.
       <message name="IDS_IM_IN" desc="Brave rewards opt in button text">
         I’m In!
       </message>
+      <message name="IDS_BRAVE_TALK_OPT_IN_HEADER_TEXT" desc="Brave talk opt-in popup header">
+        To start a free call, turn on Brave Rewards
+      </message>
+      <message name="IDS_BRAVE_TALK_OPT_IN_DESCRIPTION_TEXT" desc="Brave talk opt-in popup description">
+        With Brave Rewards, you earn tokens for viewing private ads (your data is safe). Turn those tokens into cash, gift cards…or even tip the websites you love. No tracking. No slow downs.
+      </message>
+      <message name="IDS_BRAVE_TALK_OPT_IN_BUTTON_TEXT" desc="Brave talk opt-in popup rewards turn on button">
+        Turn on Rewards
+      </message>
+      <message name="IDS_BRAVE_TALK_OPT_IN_TOS_TEXT" desc="Brave talk opt-in popup terms">
+        By clicking, you agree to the <ph name="TERMS_OF_SERVICE">%1$s</ph> and <ph name="PRIVACY_POLICY">%2$s</ph>. Disable any time in Settings.
+      </message>
       <message name="IDS_CONVERT_SUCCESS" desc="Binance convert success text">
         You converted <ph name="FROM_VALUE">%1$s</ph> <ph name="FROM_CURRENCY">%2$s</ph> to <ph name="TO_VALUE">%3$s</ph> <ph name="TO_CURRENCY">%4$s</ph>!
       </message>

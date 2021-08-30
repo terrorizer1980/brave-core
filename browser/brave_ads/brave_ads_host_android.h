@@ -6,6 +6,7 @@
 #ifndef BRAVE_BROWSER_BRAVE_ADS_BRAVE_ADS_HOST_ANDROID_H_
 #define BRAVE_BROWSER_BRAVE_ADS_BRAVE_ADS_HOST_ANDROID_H_
 
+#include "base/android/jni_android.h"
 #include "brave/components/brave_ads/common/brave_ads_host.mojom.h"
 
 class Profile;
@@ -27,8 +28,15 @@ class BraveAdsHostAndroid : public brave_ads::mojom::BraveAdsHost {
   // brave_ads::mojom::BraveAdsHost
   void RequestAdsEnabled(RequestAdsEnabledCallback callback) override;
 
+  void NotifyAdsEnabled(JNIEnv* env,
+                        const base::android::JavaParamRef<jobject>& obj);
+  void NotifyPopupClosed(JNIEnv* env,
+                         const base::android::JavaParamRef<jobject>& obj);
+
  private:
   Profile* profile_;
+  base::android::ScopedJavaGlobalRef<jobject> java_object_;
+  RequestAdsEnabledCallback callback_;
 };
 
 }  // namespace brave_ads

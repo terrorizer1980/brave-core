@@ -772,6 +772,7 @@ brave_java_resources = [
   "java/res/layout/brave_sync_device.xml",
   "java/res/layout/brave_sync_done.xml",
   "java/res/layout/brave_sync_layout.xml",
+  "java/res/layout/brave_talk_opt_in_layout.xml",
   "java/res/layout/brave_toolbar.xml",
   "java/res/layout/brave_webrtc_policy_preference.xml",
   "java/res/layout/bre_bottom_banner.xml",
