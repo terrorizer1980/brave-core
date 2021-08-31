@@ -21,6 +21,7 @@
 #include "bat/ads/internal/privacy/unblinded_tokens/unblinded_tokens.h"
 #include "bat/ads/internal/server/ads_server_util.h"
 #include "bat/ads/internal/time_formatting_util.h"
+#include "bat/ads/internal/tokens/issuers/get_issuers_url_request_builder.h"
 #include "bat/ads/internal/tokens/refill_unblinded_tokens/get_signed_tokens_url_request_builder.h"
 #include "bat/ads/internal/tokens/refill_unblinded_tokens/request_signed_tokens_url_request_builder.h"
 #include "net/http/http_status_code.h"
@@ -42,9 +43,11 @@ const int kMaximumUnblindedTokens = 50;
 
 }  // namespace
 
+// TODO(tmancey): Why do we inject Issuers as issuers are a separate concern and
+// should be fetched and persisted
 RefillUnblindedTokens::RefillUnblindedTokens(
     privacy::TokenGeneratorInterface* token_generator)
-    : token_generator_(token_generator) {
+    : issuers_(std::make_unique<Issuers>()), token_generator_(token_generator) {
   DCHECK(token_generator_);
 }
 
@@ -80,19 +83,18 @@ void RefillUnblindedTokens::MaybeRefill(const WalletInfo& wallet) {
 
   wallet_ = wallet;
 
-  const CatalogIssuersInfo catalog_issuers =
-      ConfirmationsState::Get()->get_catalog_issuers();
-  if (!catalog_issuers.IsValid()) {
-    BLOG(0, "Failed to refill unblinded tokens due to missing catalog issuers");
+  // const CatalogIssuersInfo catalog_issuers =
+  //     ConfirmationsState::Get()->get_catalog_issuers();
+  // if (!catalog_issuers.IsValid()) {
+  //   BLOG(0, "Failed to refill unblinded tokens due to missing catalog
+  //   issuers");
 
-    if (delegate_) {
-      delegate_->OnFailedToRefillUnblindedTokens();
-    }
+  //   if (delegate_) {
+  //     delegate_->OnFailedToRefillUnblindedTokens();
+  //   }
 
-    return;
-  }
-
-  public_key_ = catalog_issuers.public_key;
+  //   return;
+  // }
 
   Refill();
 }
@@ -108,12 +110,26 @@ void RefillUnblindedTokens::Refill() {
 
   nonce_ = "";
 
+  RequestIssuers();
+}
+
+void RefillUnblindedTokens::RequestIssuers() {
+  auto callback = std::bind(&RefillUnblindedTokens::OnRequestIssuers, this);
+  issuers_->GetIssuers(callback);
+}
+
+void RefillUnblindedTokens::OnRequestIssuers() {
+  if (!issuers_->IsInitialized()) {
+    OnFailedToRefillUnblindedTokens(/* should_retry */ false);
+    return;
+  }
+
   RequestSignedTokens();
 }
 
 void RefillUnblindedTokens::RequestSignedTokens() {
   BLOG(1, "RequestSignedTokens");
-  BLOG(2, "POST /v1/confirmation/token/{payment_id}");
+  BLOG(2, "POST /v2/confirmation/token/{payment_id}");
 
   const int count = CalculateAmountOfTokensToRefill();
   tokens_ = token_generator_->Generate(count);
@@ -123,7 +139,7 @@ void RefillUnblindedTokens::RequestSignedTokens() {
   RequestSignedTokensUrlRequestBuilder url_request_builder(wallet_,
                                                            blinded_tokens_);
   mojom::UrlRequestPtr url_request = url_request_builder.Build();
-  BLOG(5, UrlRequestToString(url_request));
+  BLOG(6, UrlRequestToString(url_request));
   BLOG(7, UrlRequestHeadersToString(url_request));
 
   auto callback = std::bind(&RefillUnblindedTokens::OnRequestSignedTokens, this,
@@ -162,17 +178,16 @@ void RefillUnblindedTokens::OnRequestSignedTokens(
   }
   nonce_ = *nonce;
 
-  // Get signed tokens
   GetSignedTokens();
 }
 
 void RefillUnblindedTokens::GetSignedTokens() {
   BLOG(1, "GetSignedTokens");
-  BLOG(2, "GET /v1/confirmation/token/{payment_id}?nonce={nonce}");
+  BLOG(2, "GET /v2/confirmation/token/{payment_id}?nonce={nonce}");
 
   GetSignedTokensUrlRequestBuilder url_request_builder(wallet_, nonce_);
   mojom::UrlRequestPtr url_request = url_request_builder.Build();
-  BLOG(5, UrlRequestToString(url_request));
+  BLOG(6, UrlRequestToString(url_request));
   BLOG(7, UrlRequestHeadersToString(url_request));
 
   auto callback = std::bind(&RefillUnblindedTokens::OnGetSignedTokens, this,
@@ -183,6 +198,11 @@ void RefillUnblindedTokens::GetSignedTokens() {
 void RefillUnblindedTokens::OnGetSignedTokens(
     const mojom::UrlResponse& url_response) {
   BLOG(1, "OnGetSignedTokens");
+
+  if (!issuers_->IsInitialized()) {
+    OnFailedToRefillUnblindedTokens(/* should_retry */ false);
+    return;
+  }
 
   BLOG(6, UrlResponseToString(url_response));
   BLOG(7, UrlResponseHeadersToString(url_response));
@@ -218,11 +238,10 @@ void RefillUnblindedTokens::OnGetSignedTokens(
   }
 
   // Validate public key
-  if (*public_key_base64 != public_key_) {
+  if (!issuers_->PublicKeyExists("confirmations", *public_key_base64)) {
     BLOG(0, "Response public key " << *public_key_base64
-                                   << " does not match "
-                                      "catalog issuers public key "
-                                   << public_key_);
+                                   << " does not match any"
+                                   << " confirmation public key");
     OnFailedToRefillUnblindedTokens(/* should_retry */ false);
     return;
   }
@@ -275,7 +294,7 @@ void RefillUnblindedTokens::OnGetSignedTokens(
   if (privacy::ExceptionOccurred()) {
     BLOG(1, "Failed to verify and unblind tokens");
     BLOG(1, "  Batch proof: " << *batch_proof_base64);
-    BLOG(1, "  Public key: " << public_key_);
+    BLOG(1, "  Public key: " << public_key.encode_base64());
 
     OnFailedToRefillUnblindedTokens(/* should_retry */ false);
     return;
@@ -288,7 +307,9 @@ void RefillUnblindedTokens::OnGetSignedTokens(
     privacy::UnblindedTokenInfo unblinded_token;
     unblinded_token.value = batch_dleq_proof_unblinded_token;
     unblinded_token.public_key = public_key;
-
+    // TODO: Check if these values must be defined
+    unblinded_token.confirmation_type = ConfirmationType::kUndefined;
+    unblinded_token.ad_type = AdType::kUndefined;
     unblinded_tokens.push_back(unblinded_token);
   }
 

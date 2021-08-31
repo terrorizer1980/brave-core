@@ -5,20 +5,11 @@
 
 #include "bat/ads/internal/tokens/redeem_unblinded_token/create_confirmation_url_request_builder.h"
 
-#include "base/base64.h"
-#include "base/base64url.h"
-#include "base/json/json_writer.h"
 #include "base/strings/stringprintf.h"
-#include "base/values.h"
-#include "bat/ads/internal/account/ad_rewards/ad_rewards_util.h"
-#include "bat/ads/internal/locale/country_code_util.h"
 #include "bat/ads/internal/logging.h"
-#include "bat/ads/internal/platform/platform_helper.h"
 #include "bat/ads/internal/server/confirmations_server_util.h"
 #include "bat/ads/internal/server/via_header_util.h"
 #include "bat/ads/internal/tokens/redeem_unblinded_token/create_confirmation_util.h"
-#include "brave/components/l10n/browser/locale_helper.h"
-#include "brave/components/l10n/common/locale_util.h"
 
 namespace ads {
 
@@ -31,7 +22,7 @@ CreateConfirmationUrlRequestBuilder::CreateConfirmationUrlRequestBuilder(
 CreateConfirmationUrlRequestBuilder::~CreateConfirmationUrlRequestBuilder() =
     default;
 
-// POST /v1/confirmation/{confirmation_id}/{credential}
+// POST /v2/confirmation/{confirmation_id}/{credential}
 
 mojom::UrlRequestPtr CreateConfirmationUrlRequestBuilder::Build() {
   mojom::UrlRequestPtr url_request = mojom::UrlRequest::New();
@@ -47,7 +38,7 @@ mojom::UrlRequestPtr CreateConfirmationUrlRequestBuilder::Build() {
 ///////////////////////////////////////////////////////////////////////////////
 
 std::string CreateConfirmationUrlRequestBuilder::BuildUrl() const {
-  std::string url = base::StringPrintf("%s/v1/confirmation/%s",
+  std::string url = base::StringPrintf("%s/v2/confirmation/%s",
                                        confirmations::server::GetHost().c_str(),
                                        confirmation_.id.c_str());
 

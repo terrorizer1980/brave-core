@@ -225,11 +225,11 @@ void AdRewards::Reconcile() {
 
 void AdRewards::GetPayments() {
   BLOG(1, "GetPayments");
-  BLOG(2, "GET /v1/confirmation/payment/{payment_id}");
+  BLOG(2, "GET /v2/confirmation/payment/{payment_id}");
 
   PaymentsUrlRequestBuilder url_request_builder(wallet_);
   mojom::UrlRequestPtr url_request = url_request_builder.Build();
-  BLOG(5, UrlRequestToString(url_request));
+  BLOG(6, UrlRequestToString(url_request));
   BLOG(7, UrlRequestHeadersToString(url_request));
 
   auto callback =
