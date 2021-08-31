@@ -6,10 +6,15 @@
 #ifndef BRAVE_COMPONENTS_BRAVE_VPN_BRAVE_VPN_OS_CONNECTION_API_MAC_H_
 #define BRAVE_COMPONENTS_BRAVE_VPN_BRAVE_VPN_OS_CONNECTION_API_MAC_H_
 
+#include <memory>
 #include <string>
 
 #include "base/no_destructor.h"
 #include "brave/components/brave_vpn/brave_vpn_os_connection_api.h"
+
+namespace base {
+class RepeatingTimer;
+}  // namespace base
 
 namespace brave_vpn {
 
@@ -33,11 +38,9 @@ class BraveVPNOSConnectionAPIMac : public BraveVPNOSConnectionAPI {
   void Connect(const std::string& name) override;
   void Disconnect(const std::string& name) override;
   void CheckConnection(const std::string& name) override;
-  void ObserveVPNConfigurationChange();
 
-  id vpn_observer_ = nil;
-  id vpn_observer2_ = nil;
   BraveVPNConnectionInfo info_;
+  std::unique_ptr<base::RepeatingTimer> vpn_connection_check_timer_;
 };
 
 }  // namespace brave_vpn
