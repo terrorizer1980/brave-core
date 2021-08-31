@@ -688,4 +688,13 @@ void GetAllChains(PrefService* prefs,
   GetAllCustomChains(prefs, result);
 }
 
+std::string GetFallbackChainId() {
+  std::vector<mojom::EthereumChainPtr> networks;
+  GetAllKnownChains(&networks);
+  DCHECK(!networks.empty());
+  const auto& network = networks.front();
+  DCHECK(network->rpc_urls.size());
+  return network->chain_id;
+}
+
 }  // namespace brave_wallet

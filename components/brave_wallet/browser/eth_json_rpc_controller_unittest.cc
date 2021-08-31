@@ -57,7 +57,7 @@ class EthJsonRpcControllerUnitTest : public testing::Test {
         &EthJsonRpcControllerUnitTest::ResourceRequest, this);
     url_loader_factory_.SetInterceptor(std::move(resource_request));
     user_prefs::UserPrefs::Set(browser_context_.get(), &prefs_);
-    prefs_.registry()->RegisterListPref(kBraveWalletCustomNetworks);
+    EthJsonRpcController::RegisterProfilePrefs(prefs_.registry());
   }
 
   ~EthJsonRpcControllerUnitTest() override = default;
@@ -87,6 +87,19 @@ class EthJsonRpcControllerUnitTest : public testing::Test {
         "http://localhost:8545/",
         "{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":\"0x00000"
         "0000000000000000000226159d592e2b063810a10ebf6dcbada94ed68b8\"}");
+  }
+
+  void ValidateStartWithNetwork(const std::string& chain_id,
+                                const std::string& expected_id) {
+    prefs()->SetString(kBraveWalletCurrentChainId, chain_id);
+    EthJsonRpcController controller(shared_url_loader_factory(), prefs());
+    bool callback_is_called = false;
+    controller.GetChainId(base::BindLambdaForTesting(
+        [&callback_is_called, &expected_id](const std::string& chain_id) {
+          EXPECT_EQ(chain_id, expected_id);
+          callback_is_called = true;
+        }));
+    ASSERT_TRUE(callback_is_called);
   }
 
  private:
@@ -128,13 +141,13 @@ TEST_F(EthJsonRpcControllerUnitTest, SetNetwork) {
 TEST_F(EthJsonRpcControllerUnitTest, SetCustomNetwork) {
   std::vector<base::Value> values;
   brave_wallet::mojom::EthereumChain chain1(
-      "chain_id", "chain_name", {"https://url1.com"}, {"https://url1.com"},
+      "0x55", "chain_name", {"https://url1.com"}, {"https://url1.com"},
       {"https://url1.com"}, "symbol_name", "symbol", 11);
   auto chain_ptr1 = chain1.Clone();
   values.push_back(brave_wallet::EthereumChainToValue(chain_ptr1));
 
   brave_wallet::mojom::EthereumChain chain2(
-      "chain_id2", "chain_name2", {"https://url2.com"}, {"https://url2.com"},
+      "0x66", "chain_name2", {"https://url2.com"}, {"https://url2.com"},
       {"https://url2.com"}, "symbol_name2", "symbol2", 22);
   auto chain_ptr2 = chain2.Clone();
   values.push_back(brave_wallet::EthereumChainToValue(chain_ptr2));
@@ -215,6 +228,13 @@ TEST_F(EthJsonRpcControllerUnitTest, ResolveENSDomain) {
           },
           run.QuitClosure()));
   run.Run();
+}
+
+TEST_F(EthJsonRpcControllerUnitTest, StartWithNetwork) {
+  auto chain_id = GetFallbackChainId();
+  ValidateStartWithNetwork(std::string(), chain_id);
+  ValidateStartWithNetwork("SomeBadChainId", chain_id);
+  ValidateStartWithNetwork("0x3", "0x3");
 }
 
 }  // namespace brave_wallet

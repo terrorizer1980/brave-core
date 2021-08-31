@@ -978,4 +978,13 @@ TEST(BraveWalletUtilsUnitTest, GetNetworkURLTest) {
             GetNetworkURL(&prefs, chain2.chain_id));
 }
 
+TEST(BraveWalletUtilsUnitTest, FallbackToMainNet) {
+  TestingPrefServiceSimple prefs;
+  prefs.registry()->RegisterListPref(kBraveWalletCustomNetworks);
+
+  auto chain_id = GetFallbackChainId();
+  EXPECT_EQ(chain_id, "0x1");
+  ASSERT_TRUE(GetNetworkURL(&prefs, chain_id).is_valid());
+}
+
 }  // namespace brave_wallet

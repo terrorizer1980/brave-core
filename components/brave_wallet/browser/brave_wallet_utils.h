@@ -105,6 +105,7 @@ void GetAllCustomChains(PrefService* prefs,
 void GetAllChains(PrefService* prefs,
                   std::vector<mojom::EthereumChainPtr>* result);
 GURL GetNetworkURL(PrefService* prefs, const std::string& chain_id);
+std::string GetFallbackChainId();
 
 }  // namespace brave_wallet
 

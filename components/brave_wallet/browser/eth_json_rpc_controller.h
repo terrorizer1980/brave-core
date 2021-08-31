@@ -166,6 +166,8 @@ class EthJsonRpcController : public KeyedService,
       const std::string& body,
       const base::flat_map<std::string, std::string>& headers);
 
+  void InitNetwork();
+
   api_request_helper::APIRequestHelper api_request_helper_;
   GURL network_url_;
   std::string chain_id_;

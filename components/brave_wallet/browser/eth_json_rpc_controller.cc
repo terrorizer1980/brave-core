@@ -13,7 +13,7 @@
 #include "brave/components/brave_wallet/browser/eth_response_parser.h"
 #include "brave/components/brave_wallet/browser/pref_names.h"
 #include "components/prefs/pref_registry_simple.h"
-#include "components/user_prefs/user_prefs.h"
+#include "components/prefs/pref_service.h"
 #include "services/network/public/cpp/shared_url_loader_factory.h"
 
 namespace {
@@ -41,6 +41,13 @@ net::NetworkTrafficAnnotationTag GetNetworkTrafficAnnotationTag() {
     )");
 }
 
+std::string GetCurrentChainId(PrefService* prefs) {
+  auto current_chain_id = prefs->GetString(kBraveWalletCurrentChainId);
+  if (!current_chain_id.empty())
+    return current_chain_id;
+  return brave_wallet::GetFallbackChainId();
+}
+
 }  // namespace
 
 namespace brave_wallet {
@@ -51,13 +58,19 @@ EthJsonRpcController::EthJsonRpcController(
     : api_request_helper_(GetNetworkTrafficAnnotationTag(), url_loader_factory),
       prefs_(prefs),
       weak_ptr_factory_(this) {
-  std::vector<mojom::EthereumChainPtr> networks;
-  GetAllKnownChains(&networks);
-  DCHECK(!networks.empty());
-  SetNetwork(networks.front()->chain_id);
+  InitNetwork();
 }
 
 EthJsonRpcController::~EthJsonRpcController() {}
+
+void EthJsonRpcController::InitNetwork() {
+  auto chain_id = GetCurrentChainId(prefs_);
+  auto network_url = GetNetworkURL(prefs_, chain_id);
+  if (!network_url.is_valid()) {
+    chain_id = GetFallbackChainId();
+  }
+  SetNetwork(chain_id);
+}
 
 mojo::PendingRemote<mojom::EthJsonRpcController>
 EthJsonRpcController::MakeRemote() {
@@ -90,6 +103,7 @@ void EthJsonRpcController::SetNetwork(const std::string& chain_id) {
     return;
   chain_id_ = chain_id;
   network_url_ = network_url;
+  prefs_->SetString(kBraveWalletCurrentChainId, chain_id);
   FireNetworkChanged();
 }
 
@@ -244,6 +258,7 @@ void EthJsonRpcController::OnGetTransactionReceipt(
 // static
 void EthJsonRpcController::RegisterProfilePrefs(PrefRegistrySimple* registry) {
   registry->RegisterListPref(kBraveWalletCustomNetworks);
+  registry->RegisterStringPref(kBraveWalletCurrentChainId, std::string());
 }
 
 void EthJsonRpcController::SendRawTransaction(const std::string& signed_tx,
