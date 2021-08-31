@@ -36,6 +36,7 @@ class BraveVPNOSConnectionAPIMac : public BraveVPNOSConnectionAPI {
   void ObserveVPNConfigurationChange();
 
   id vpn_observer_ = nil;
+  id vpn_observer2_ = nil;
   BraveVPNConnectionInfo info_;
 };
 

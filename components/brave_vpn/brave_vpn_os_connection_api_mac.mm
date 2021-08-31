@@ -15,6 +15,52 @@
 #include "base/notreached.h"
 #include "base/strings/sys_string_conversions.h"
 
+@interface VPNConfigurationChangeObserver : NSObject
+@end  // @interface VPNConfigurationChangeObserver
+
+@implementation VPNConfigurationChangeObserver
+
+- (instancetype)init {
+  if ((self = [super init])) {
+    NSNotificationCenter* center = [NSNotificationCenter defaultCenter];
+    [center addObserver:self
+               selector:@selector(vpnStatusDidChanged:)
+                   name:NEVPNConfigurationChangeNotification
+                 object:nil];
+  }
+
+  return self;
+}
+
+- (void)dealloc {
+  [[NSNotificationCenter defaultCenter] removeObserver:self];
+}
+
+- (void)vpnStatusDidChanged:(NSNotification *)notification{
+  NEVPNManager* vpn_manager = [NEVPNManager sharedManager];
+  [vpn_manager loadFromPreferencesWithCompletionHandler:^(NSError* error) {
+    if (error) {
+      LOG(ERROR) << "Connect - loadFromPrefs error: "
+                 << base::SysNSStringToUTF8([error localizedDescription]);
+      return;
+    }
+
+    NEVPNStatus current_status = [[vpn_manager connection] status];
+    switch (current_status) {
+        case NEVPNStatusConnected:
+            VLOG(2) << "NEVPNStatusConnected";
+            break;
+        case NEVPNStatusDisconnected:
+            VLOG(2) << "NEVPNStatusDisconnected";
+            break;
+        default:
+            break;
+    }
+  }];
+}
+
+@end  // @implementation VPNConfigurationChangeObserver
+
 // Referenced GuardianConnect implementation.
 // https://github.com/GuardianFirewall/GuardianConnect
 namespace brave_vpn {
@@ -140,6 +186,7 @@ BraveVPNOSConnectionAPI* BraveVPNOSConnectionAPI::GetInstance() {
 
 BraveVPNOSConnectionAPIMac::BraveVPNOSConnectionAPIMac() {
   ObserveVPNConfigurationChange();
+  vpn_observer2_ = [[VPNConfigurationChangeObserver alloc] init];
 }
 
 BraveVPNOSConnectionAPIMac::~BraveVPNOSConnectionAPIMac() {
