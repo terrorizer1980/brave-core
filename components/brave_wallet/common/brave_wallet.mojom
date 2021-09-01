@@ -255,7 +255,7 @@ struct EthereumChain {
   array<string> icon_urls;
   array<string> rpc_urls;
   string symbol;
-  string name;
+  string symbol_name;
   int32 decimals;
 };
 
