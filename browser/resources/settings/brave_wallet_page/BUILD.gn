@@ -12,6 +12,7 @@ import("../settings.gni")
 group("web_modules") {
   public_deps = [
     ":brave_wallet_page_module",
+    ":wallet_networks_subpage_module",
     ":modules",
   ]
 }
@@ -19,6 +20,14 @@ group("web_modules") {
 polymer_modulizer("brave_wallet_page") {
   js_file = "brave_wallet_page.js"
   html_file = "brave_wallet_page.html"
+  html_type = "dom-module"
+  auto_imports = settings_auto_imports + [ "brave/browser/resources/settings/brave_wallet_page/brave_wallet_browser_proxy.html|BraveWalletBrowserProxy, BraveWalletBrowserProxyImpl" ]
+  namespace_rewrites = settings_namespace_rewrites
+}
+
+polymer_modulizer("wallet_networks_subpage") {
+  js_file = "wallet_networks_subpage.js"
+  html_file = "wallet_networks_subpage.html"
   html_type = "dom-module"
   auto_imports = settings_auto_imports + [ "brave/browser/resources/settings/brave_wallet_page/brave_wallet_browser_proxy.html|BraveWalletBrowserProxy, BraveWalletBrowserProxyImpl" ]
   namespace_rewrites = settings_namespace_rewrites

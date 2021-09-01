@@ -1,7 +1,9 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
- 
+
+ import {Router} from '../router.js';
+
 (function() {
 'use strict';
 
@@ -37,10 +39,17 @@ Polymer({
     this.browserProxy_.isNativeWalletEnabled().then(val => {
       this.isNativeWalletEnabled_ = val;
     });
+    this.onWalletNetworksEditorClick_ = this.onWalletNetworksEditorClick_.bind(this)
   },
 
   onBraveWalletEnabledChange_: function() {
     this.browserProxy_.setBraveWalletEnabled(this.$.braveWalletEnabled.checked);
   },
+
+  onWalletNetworksEditorClick_: function() {
+    const router = Router.getInstance();
+    router.navigateTo(router.getRoutes().BRAVE_WALLET_NETWORKS);
+  },
+
 });
 })();
