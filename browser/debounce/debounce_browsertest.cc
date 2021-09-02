@@ -29,7 +29,7 @@
 
 namespace {
 const char kTestDataDirectory[] = "debounce-data";
-std::string gLastSiteForCookies = "";
+static base::NoDestructor<std::string> gLastSiteForCookies("");
 }  // namespace
 
 namespace debounce {
@@ -71,7 +71,7 @@ class SpyThrottle : public blink::URLLoaderThrottle {
 
   void WillStartRequest(network::ResourceRequest* request,
                         bool* defer) override {
-    gLastSiteForCookies = request->site_for_cookies.site().Serialize();
+    *gLastSiteForCookies = request->site_for_cookies.site().Serialize();
   }
 };
 
@@ -238,9 +238,8 @@ IN_PROC_BROWSER_TEST_F(DebounceBrowserTest, RedirectThroughOriginalSite) {
       embedded_test_server()->GetURL("quad.b.com", "/"), url_c);
   GURL url_a = add_redirect_param(
       embedded_test_server()->GetURL("quad.a.com", "/"), url_b);
-  gLastSiteForCookies = "";
   NavigateToURLAndWaitForRedirects(url_a, url_z);
-  EXPECT_EQ(gLastSiteForCookies, "http://z.com");
+  EXPECT_EQ(*gLastSiteForCookies, "http://z.com");
 
   content::SetBrowserClientForTesting(old_client);
 }
