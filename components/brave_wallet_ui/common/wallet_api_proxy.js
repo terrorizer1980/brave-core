@@ -33,6 +33,10 @@ export default class WalletApiProxy {
     const ethJsonRpcControllerObserverReceiver = new braveWallet.mojom.EthJsonRpcControllerObserverReceiver({
       chainChangedEvent: function (chainId) {
         store.dispatch(WalletActions.chainChangedEvent({ chainId }))
+      },
+      onPendingRequestAdded: function (chainId) {
+      },
+      onPendingRequestCompleted: function (chainId, error) {
       }
     })
     this.ethJsonRpcController.addObserver(ethJsonRpcControllerObserverReceiver.$.bindNewPipeAndPassRemote());

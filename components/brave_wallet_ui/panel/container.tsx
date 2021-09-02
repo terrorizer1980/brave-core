@@ -300,14 +300,13 @@ function Container (props: Props) {
   }
 
   const onApproveAddNetwork = () => {
-    props.walletPanelActions.addEthereumChainApproved({
-      networkPayload: networkPayload
-    })
+    props.walletPanelActions.pendingRequestCompleted({ chainId: networkPayload.chainId, approved: true })
   }
 
   const onCancelAddNetwork = () => {
-    props.walletPanelActions.addEthereumChainCanceled(networkPayload.chainId)
+    props.walletPanelActions.pendingRequestCompleted({ chainId: networkPayload.chainId, approved: false })
   }
+
   const onNetworkLearnMore = () => {
     chrome.tabs.create({
       url: 'https://support.brave.com/'

@@ -32,11 +32,6 @@ class BraveWalletTabHelper
 
 #if !defined(OS_ANDROID) && !defined(OS_IOS)
   void ShowBubble();
-  void RequestUserApproval(const std::string& chain_id,
-                           const std::string& payload,
-                           RequestEthereumChainCallback callback);
-  void UserRequestCompleted(const std::string& chain_id,
-                            const std::string& error);
   void CloseBubble();
   bool IsShowingBubble();
   bool IsBubbleClosedForTesting();
@@ -46,7 +41,6 @@ class BraveWalletTabHelper
   friend class content::WebContentsUserData<BraveWalletTabHelper>;
 #if !defined(OS_ANDROID) && !defined(OS_IOS)
   GURL GetBubbleURL();
-  base::flat_map<std::string, RequestEthereumChainCallback> request_callbacks_;
   std::unique_ptr<WalletBubbleManagerDelegate> wallet_bubble_manager_delegate_;
 #endif
   content::WebContents* web_contents_;

@@ -24,29 +24,6 @@
 #include "brave/browser/ui/brave_wallet/wallet_bubble_manager_delegate.h"
 #endif
 
-namespace {
-
-#if !defined(OS_ANDROID) && !defined(OS_IOS)
-GURL GetAddEthereumChainPayloadWebUIURL(const GURL& webui_base_url,
-                                        int32_t tab_id,
-                                        const std::string& payload) {
-  DCHECK(webui_base_url.is_valid() && tab_id > 0 && !payload.empty());
-
-  std::vector<std::string> query_parts;
-  query_parts.push_back(base::StringPrintf("payload=%s", payload.c_str()));
-  query_parts.push_back(base::StringPrintf("tabId=%d", tab_id));
-  std::string query_str = base::JoinString(query_parts, "&");
-  url::Replacements<char> replacements;
-  replacements.SetQuery(query_str.c_str(), url::Component(0, query_str.size()));
-  const std::string kAddEthereumChain = "addEthereumChain";
-  replacements.SetRef(kAddEthereumChain.c_str(),
-                      url::Component(0, kAddEthereumChain.size()));
-  return webui_base_url.ReplaceComponents(replacements);
-}
-#endif
-
-}  // namespace
-
 namespace brave_wallet {
 
 BraveWalletTabHelper::BraveWalletTabHelper(content::WebContents* web_contents)
@@ -58,32 +35,6 @@ BraveWalletTabHelper::~BraveWalletTabHelper() = default;
 void BraveWalletTabHelper::ShowBubble() {
   wallet_bubble_manager_delegate_ =
       WalletBubbleManagerDelegate::Create(web_contents_, GetBubbleURL());
-  wallet_bubble_manager_delegate_->ShowBubble();
-}
-
-void BraveWalletTabHelper::UserRequestCompleted(const std::string& chain_id,
-                                                const std::string& error) {
-  DCHECK(request_callbacks_.contains(chain_id));
-  std::move(request_callbacks_[chain_id]).Run(error);
-  request_callbacks_.erase(chain_id);
-}
-
-void BraveWalletTabHelper::RequestUserApproval(
-    const std::string& chain_id,
-    const std::string& payload,
-    RequestEthereumChainCallback callback) {
-  std::vector<std::string> accounts;
-  int32_t tab_id = sessions::SessionTabHelper::IdForTab(web_contents_).id();
-  GURL webui_url = GetAddEthereumChainPayloadWebUIURL(
-      GURL(kBraveUIWalletPanelURL), tab_id, payload);
-  DCHECK(webui_url.is_valid());
-  if (request_callbacks_.contains(chain_id)) {
-    UserRequestCompleted(chain_id, std::string());
-    return;
-  }
-  request_callbacks_[chain_id] = std::move(callback);
-  wallet_bubble_manager_delegate_ =
-      WalletBubbleManagerDelegate::Create(web_contents_, webui_url);
   wallet_bubble_manager_delegate_->ShowBubble();
 }
 

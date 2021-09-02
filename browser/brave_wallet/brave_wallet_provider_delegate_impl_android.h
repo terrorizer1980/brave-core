@@ -30,8 +30,6 @@ class BraveWalletProviderDelegateImplAndroid
       const BraveWalletProviderDelegateImplAndroid&) = delete;
   ~BraveWalletProviderDelegateImplAndroid() override = default;
 
-  void RequestUserApproval(const std::string& request_data,
-                           RequestEthereumChainCallback callback) override;
   void RequestEthereumPermissions(
       RequestEthereumPermissionsCallback callback) override;
   void GetAllowedAccounts(GetAllowedAccountsCallback callback) override;

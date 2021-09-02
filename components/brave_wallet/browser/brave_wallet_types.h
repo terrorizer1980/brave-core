@@ -36,9 +36,6 @@ struct TransactionReceipt {
   bool status;
 };
 
-using RequestEthereumChainCallback =
-    base::OnceCallback<void(const std::string&)>;
-
 }  // namespace brave_wallet
 
 #endif  // BRAVE_COMPONENTS_BRAVE_WALLET_BROWSER_BRAVE_WALLET_TYPES_H_
