@@ -74,7 +74,6 @@ class AdsService : public KeyedService {
   void RemoveObserver(AdsServiceObserver* observer);
 
   virtual bool IsSupportedLocale() const = 0;
-  virtual bool IsNewlySupportedLocale() = 0;
 
   virtual bool IsEnabled() const = 0;
   virtual void SetEnabled(const bool is_enabled) = 0;

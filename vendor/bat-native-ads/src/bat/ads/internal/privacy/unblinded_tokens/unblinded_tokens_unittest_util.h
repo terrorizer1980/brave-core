@@ -18,9 +18,6 @@ namespace privacy {
 UnblindedTokenInfo CreateUnblindedToken(
     const std::string& unblinded_token_base64);
 
-UnblindedTokenList CreateUnblindedTokens(
-    const std::vector<std::string>& unblinded_tokens_base64);
-
 UnblindedTokenList GetUnblindedTokens(const int count);
 
 UnblindedTokenList GetRandomUnblindedTokens(const int count);

@@ -31,20 +31,6 @@ UnblindedTokenInfo CreateUnblindedToken(
   return unblinded_token;
 }
 
-UnblindedTokenList CreateUnblindedTokens(
-    const std::vector<std::string>& unblinded_tokens_base64) {
-  UnblindedTokenList unblinded_tokens;
-
-  for (const auto& unblinded_token_base64 : unblinded_tokens_base64) {
-    UnblindedTokenInfo unblinded_token =
-        CreateUnblindedToken(unblinded_token_base64);
-
-    unblinded_tokens.push_back(unblinded_token);
-  }
-
-  return unblinded_tokens;
-}
-
 UnblindedTokenList GetUnblindedTokens(const int count) {
   const std::vector<std::string> unblinded_tokens_base64 = {
       R"(PLowz2WF2eGD5zfwZjk9p76HXBLDKMq/3EAZHeG/fE2XGQ48jyte+Ve50ZlasOuYL5mwA8CU2aFMlJrt3DDgC3B1+VD/uyHPfa/+bwYRrpVH5YwNSDEydVx8S4r+BYVY)",
