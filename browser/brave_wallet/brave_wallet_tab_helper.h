@@ -36,6 +36,7 @@ class BraveWalletTabHelper
 #endif
 
  private:
+  FRIEND_TEST_ALL_PREFIXES(BraveWalletTabHelperUnitTest, GetApproveBubbleURL);
   friend class content::WebContentsUserData<BraveWalletTabHelper>;
 #if !defined(OS_ANDROID) && !defined(OS_IOS)
   GURL GetBubbleURL();
