@@ -1,8 +1,8 @@
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActivity.java b/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActivity.java
-index d4e51670d88df3e51db017f2152d117601aea5f0..a86683fa3ac3023b03f30355c18f38b8a45d7c56 100644
+index a18a1de8aa4ffc947ff7037a1e6e7cccb5d8faeb..aafb58e17a0e3e3183b12f754982e4bf25d506b6 100644
 --- a/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActivity.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActivity.java
-@@ -387,7 +387,7 @@ public abstract class ChromeActivity<C extends ChromeActivityComponent>
+@@ -388,7 +388,7 @@ public abstract class ChromeActivity<C extends ChromeActivityComponent>
      private boolean mLastPictureInPictureModeForTesting;
  
      protected ChromeActivity() {
