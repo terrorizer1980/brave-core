@@ -29,6 +29,14 @@ class BraveWalletService : public KeyedService,
   void Bind(mojo::PendingReceiver<mojom::BraveWalletService> receiver);
 
   // mojom::BraveWalletService:
+  void GetAllVisibleTokens(mojom::Network network,
+                           GetAllVisibleTokensCallback callback) override;
+  void AddVisibleKnownToken(const std::string& contract_address,
+                            mojom::Network network,
+                            AddVisibleKnownTokenCallback callback) override;
+  void AddVisibleCustomToken(mojom::ERCTokenPtr token,
+                             mojom::Network network,
+                             AddVisibleCustomTokenCallback callback) override;
 
  private:
   PrefService* prefs_;

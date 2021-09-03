@@ -298,4 +298,7 @@ interface EthTxController {
 };
 
 interface BraveWalletService {
+  GetAllVisibleTokens(Network network) => (array<ERCToken> tokens);
+  AddVisibleKnownToken(string contract_address, Network network) => (bool success);
+  AddVisibleCustomToken(ERCToken token, Network network) => (bool success);
 };
