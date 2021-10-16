@@ -315,7 +315,7 @@
     "@brave/react-virtualized-auto-sizer": "^1.0.4",
     "@types/jszip": "^3.1.6",
     "@types/parse-torrent": "^5.8.3",
-    "@types/webtorrent": "^0.109.0",
+    "@types/webtorrent": "^0.109.2",
     "array-move": "^2.2.1",
     "bignumber.js": "^7.2.1",
     "bluebird": "^3.5.1",
